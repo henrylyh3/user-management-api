@@ -1,17 +1,28 @@
 # user-management-api
 
 .net
-Command to run:
+
+# Command to run
+
 dotnet new globaljson --sdk-version 10.0.100dotnet dev-certs https --trust
 dotnet run --project src/UserManagement.Web/UserManagement.Web.csproj --launch-profile https
 
+# Command to run seed
+
+dotnet run --project src/UserManagement.Seed
+
+# Layered
+
 Controller -> IUserService -> UserService -> IUserRepository -> UserRepository -> MongoDBClient
 
+# Dependency
+
 Dependency
-Web → Application + Core
-Application → DataAccess + Core
-DataAccess → Core
-Core → nothing
+Web -> Application + Core
+Application -> DataAccess + Core
+DataAccess -> Core
+Core -> x
+Seed -> Core + DataAccess
 
 # Sign up
 
