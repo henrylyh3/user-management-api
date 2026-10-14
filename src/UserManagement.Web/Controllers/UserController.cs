@@ -10,17 +10,20 @@ public class UserController : ControllerBase
 {
     private readonly IUserService _userService;
     private readonly ILogger<UserController> _logger;
+    private readonly ICurrentUserService _currentUser;
 
     public UserController(
         IUserService userService,
-        ILogger<UserController> logger)
+        ILogger<UserController> logger,
+        ICurrentUserService currentUser)
     {
         _userService = userService;
         _logger = logger;
+        _currentUser = currentUser;
     }
 
     [HttpGet]
-    [Authorize(Roles = "User,Admin")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> GetUsers()
     {
         _logger.LogInformation("Getting all users");
@@ -33,5 +36,22 @@ public class UserController : ControllerBase
         );
 
         return Ok(users);
+    }
+
+    [HttpGet("{id}")]
+    [Authorize(Roles = "User,Admin")]
+    public async Task<IActionResult> GetUser(string id)
+    {
+        var currentUserId = _currentUser.UserId;
+        var isAdmin = _currentUser.IsAdmin;
+
+        if (currentUserId != id && !isAdmin)
+        {
+            return Forbid();
+        }
+
+        var user = await _userService.GetUserByIdAsync(id);
+
+        return user is null ? NotFound() : Ok(user);
     }
 }

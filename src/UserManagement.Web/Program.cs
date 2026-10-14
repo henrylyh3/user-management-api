@@ -6,6 +6,8 @@ using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using UserManagement.Application.Interfaces;
+using UserManagement.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -104,6 +106,12 @@ builder.Services
     });
 
 builder.Services.AddAuthorization();
+
+
+//current user
+builder.Services.AddHttpContextAccessor();
+
+builder.Services.AddScoped<ICurrentUserService,CurrentUserService>();
 
 //app
 

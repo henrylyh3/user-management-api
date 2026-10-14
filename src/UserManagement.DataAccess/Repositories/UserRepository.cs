@@ -25,7 +25,7 @@ public class UserRepository : MongoDBClient, IUserRepository
             .Find(Builders<User>.Filter.Empty)
             .ToListAsync();
     }
-    
+
     public async Task<User?> GetByEmailAsync(string email)
     {
         return await _usersCollection
@@ -36,5 +36,12 @@ public class UserRepository : MongoDBClient, IUserRepository
     public async Task CreateAsync(User user)
     {
         await _usersCollection.InsertOneAsync(user);
+    }
+
+    public async Task<User?> GetByIdAsync(string id)
+    {
+        return await _usersCollection
+            .Find(user => user.Id == id)
+            .FirstOrDefaultAsync();
     }
 }

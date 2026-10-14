@@ -10,10 +10,15 @@ namespace UserManagement.Web.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
+    private readonly ICurrentUserService _currentUser;
 
-    public AuthController(IAuthService authService)
+    public AuthController(
+        IAuthService authService,
+        ICurrentUserService currentUser
+        )
     {
         _authService = authService;
+        _currentUser = currentUser;
     }
 
     [AllowAnonymous]
@@ -50,5 +55,19 @@ public class AuthController : ControllerBase
         }
 
         return Ok(result);
+    }
+
+    [Authorize]
+    [HttpGet("whoami")]
+    public IActionResult GetTokenInfo()
+    {
+        return Ok(new
+        {
+            _currentUser.IsAuthenticated,
+            _currentUser.UserId,
+            _currentUser.Email,
+            _currentUser.Role,
+            _currentUser.IsAdmin
+        });
     }
 }
