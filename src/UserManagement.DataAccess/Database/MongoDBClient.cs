@@ -1,5 +1,6 @@
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using MongoDB.Driver;
+using UserManagement.Core.Settings;
 
 namespace UserManagement.DataAccess.Database;
 
@@ -7,16 +8,17 @@ public class MongoDBClient
 {
     protected IMongoDatabase MongoDb { get; }
 
-    public MongoDBClient(IConfiguration configuration)
+    public MongoDBClient(
+        IOptions<MongoDbSettings> options)
     {
-        var connectionString =
-            configuration["MongoDB:ConnectionString"];
+        var settings = options.Value;
 
-        var databaseName =
-            configuration["MongoDB:DatabaseName"];
+        var client = new MongoClient(
+            settings.ConnectionString
+        );
 
-        var client = new MongoClient(connectionString);
-
-        MongoDb = client.GetDatabase(databaseName);
+        MongoDb = client.GetDatabase(
+            settings.DatabaseName
+        );
     }
 }

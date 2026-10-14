@@ -1,8 +1,35 @@
+using Serilog;
 using UserManagement.Application;
+using UserManagement.Core.Settings;
+using UserManagement.Web.Exceptions;
+using System.Security.Claims;
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Controllers
+var logPath = Path.Combine(
+    builder.Environment.ContentRootPath,
+    "Logs",
+    "log-.txt"
+);
+
+builder.Host.UseSerilog((context, services, configuration) =>
+{
+    configuration
+        .ReadFrom.Configuration(context.Configuration)
+        .ReadFrom.Services(services)
+        .Enrich.FromLogContext()
+        .WriteTo.Console()
+        .WriteTo.File(
+            logPath,
+            rollingInterval: RollingInterval.Day,
+            retainedFileCountLimit: 30,
+            shared: true
+        );
+});
+//controller
 builder.Services.AddControllers();
 
 // Swagger
@@ -12,8 +39,76 @@ builder.Services.AddSwaggerGen();
 // Application + Repository DI
 builder.Services.AddApplication();
 
-var app = builder.Build();
 
+//db
+builder.Services.Configure<MongoDbSettings>(
+    builder.Configuration.GetSection("MongoDB")
+);
+
+builder.Services.AddProblemDetails();
+
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+
+//cors
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("Frontend", policy =>
+    {
+        policy
+            .WithOrigins("http://localhost:3000")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
+
+//health
+builder.Services.AddHealthChecks();
+
+//jwt section
+builder.Services.Configure<JwtSettings>(
+    builder.Configuration.GetSection("Jwt")
+);
+
+var jwt = builder.Configuration
+    .GetSection("Jwt")
+    .Get<JwtSettings>()
+    ?? throw new InvalidOperationException(
+        "JWT configuration is missing."
+    );
+
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.MapInboundClaims = false;
+
+        options.TokenValidationParameters =
+            new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+
+                ValidIssuer = jwt.Issuer,
+                ValidAudience = jwt.Audience,
+
+                IssuerSigningKey = new SymmetricSecurityKey(
+                    Encoding.UTF8.GetBytes(jwt.Key)
+                ),
+
+                RoleClaimType = "role",
+                NameClaimType = ClaimTypes.Name,
+                ClockSkew = TimeSpan.Zero
+            };
+    });
+
+builder.Services.AddAuthorization();
+
+//app
+
+var app = builder.Build();
+app.UseExceptionHandler();
 // Swagger
 if (app.Environment.IsDevelopment())
 {
@@ -21,10 +116,15 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseSerilogRequestLogging();
+app.UseCors("Frontend");
+
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 
+app.MapHealthChecks("/health");
 app.Run();
