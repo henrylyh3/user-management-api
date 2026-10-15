@@ -8,66 +8,42 @@ public sealed class LocalFileStorageService : IFileStorageService
 
     public LocalFileStorageService(IWebHostEnvironment environment)
     {
-        var webRoot = environment.WebRootPath
-            ?? Path.Combine(environment.ContentRootPath, "wwwroot");
+        var webRoot = environment.WebRootPath ?? Path.Combine( environment.ContentRootPath, "wwwroot");
 
-        _uploadsRoot = Path.Combine(webRoot, "uploads");
+        _uploadsRoot = Path.Combine( webRoot, "uploads");
+
+        Directory.CreateDirectory(_uploadsRoot);
     }
 
-    public async Task UploadAsync(
-        Stream stream,
-        string fileKey,
-        string contentType,
-        CancellationToken cancellationToken = default)
+    public async Task UploadAsync(Stream stream, string fileKey, string contentType, CancellationToken cancellationToken = default)
     {
-        var relativePath = fileKey.Replace(
-            '/',
-            Path.DirectorySeparatorChar);
+        var relativePath = fileKey.Replace( '/', Path.DirectorySeparatorChar);
 
-        var fullPath = Path.GetFullPath(
-            Path.Combine(_uploadsRoot, relativePath));
+        var fullPath = Path.GetFullPath(Path.Combine(_uploadsRoot, relativePath));
 
-        var allowedRoot =
-            Path.GetFullPath(_uploadsRoot) +
-            Path.DirectorySeparatorChar;
+        var allowedRoot = Path.GetFullPath(_uploadsRoot) + Path.DirectorySeparatorChar;
 
-        if (!fullPath.StartsWith(
-                allowedRoot,
-                StringComparison.Ordinal))
+        if (!fullPath.StartsWith( allowedRoot, StringComparison.Ordinal))
         {
             throw new InvalidOperationException("Invalid file path.");
         }
 
-        Directory.CreateDirectory(
-            Path.GetDirectoryName(fullPath)!);
+        Directory.CreateDirectory( Path.GetDirectoryName(fullPath)!);
 
-        await using var output = new FileStream(
-            fullPath,
-            FileMode.Create,
-            FileAccess.Write,
-            FileShare.None);
+        await using var output = new FileStream( fullPath, FileMode.Create, FileAccess.Write, FileShare.None);
 
         await stream.CopyToAsync(output, cancellationToken);
     }
 
-    public Task DeleteAsync(
-        string fileKey,
-        CancellationToken cancellationToken = default)
+    public Task DeleteAsync( string fileKey, CancellationToken cancellationToken = default)
     {
-        var relativePath = fileKey.Replace(
-            '/',
-            Path.DirectorySeparatorChar);
+        var relativePath = fileKey.Replace( '/', Path.DirectorySeparatorChar);
 
-        var fullPath = Path.GetFullPath(
-            Path.Combine(_uploadsRoot, relativePath));
+        var fullPath = Path.GetFullPath( Path.Combine(_uploadsRoot, relativePath));
 
-        var allowedRoot =
-            Path.GetFullPath(_uploadsRoot) +
-            Path.DirectorySeparatorChar;
+        var allowedRoot = Path.GetFullPath(_uploadsRoot) + Path.DirectorySeparatorChar;
 
-        if (!fullPath.StartsWith(
-                allowedRoot,
-                StringComparison.Ordinal))
+        if (!fullPath.StartsWith( allowedRoot, StringComparison.Ordinal))
         {
             throw new InvalidOperationException("Invalid file path.");
         }
