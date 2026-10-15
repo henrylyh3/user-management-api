@@ -112,7 +112,7 @@ builder.Services.AddAuthorization();
 builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddScoped<ICurrentUserService,CurrentUserService>();
-
+builder.Services.AddScoped<IFileStorageService,LocalFileStorageService>();
 //app
 
 var app = builder.Build();
@@ -128,6 +128,8 @@ app.UseSerilogRequestLogging();
 app.UseCors("Frontend");
 
 app.UseHttpsRedirection();
+
+app.UseStaticFiles();
 
 app.UseAuthentication();
 app.UseAuthorization();

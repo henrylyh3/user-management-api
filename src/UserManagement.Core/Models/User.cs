@@ -27,4 +27,7 @@ public class User
     [BsonElement("Role")]
     public string Role { get; set; } = "User";
     //User(default), Admin
+
+    [BsonElement("ImageUrl")]
+    public string? ImageUrl { get; set; }
 }

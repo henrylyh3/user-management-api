@@ -35,3 +35,10 @@ Find email -> match password -> create jwt and return with expiry
 # normal api call
 
 UseAuthentication -> validate signature, issuer, audience & expirt -> create user claims -> UseAuthorization check [Authorize] and verify enpoint role -> controller
+
+# with sorage service
+
+update profile-> update name/email -> return updated profile + image
+update profile image -> store image -> update imageurl -> delete previous image(if any) -> return updated profile + image
+remove image -> remove image, delete imageurl -> return updated profile + image(null)
+get user -> get profile + image

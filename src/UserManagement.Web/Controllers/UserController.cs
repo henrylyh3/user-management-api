@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using UserManagement.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
+using UserManagement.Core.DTOs;
 
 namespace UserManagement.Web.Controllers;
 
@@ -30,10 +31,7 @@ public class UserController : ControllerBase
 
         var users = await _userService.GetUsersAsync();
 
-        _logger.LogInformation(
-            "Retrieved {UserCount} users",
-            users.Count
-        );
+        _logger.LogInformation( "Retrieved {UserCount} users", users.Count);
 
         return Ok(users);
     }
@@ -51,6 +49,83 @@ public class UserController : ControllerBase
         }
 
         var user = await _userService.GetUserByIdAsync(id);
+
+        return user is null ? NotFound() : Ok(user);
+    }
+
+    [HttpPut("{id}/profile")]
+    [Authorize(Roles = "User,Admin")]
+    public async Task<IActionResult> UpdateProfile( string id, [FromBody] UpdateUserProfileRequest request)
+    {
+        var currentUserId = _currentUser.UserId;
+        var isAdmin = _currentUser.IsAdmin;
+
+        if (currentUserId != id && !isAdmin)
+        {
+            return Forbid();
+        }
+
+        var updatedUser = await _userService.UpdateProfileAsync(id, request);
+
+        return updatedUser is null ? NotFound() : Ok(updatedUser);
+    }
+
+    [HttpPut("{id}/image-url")]
+    [Authorize(Roles = "User,Admin")]
+    [RequestSizeLimit(5 * 1024 * 1024)]
+    public async Task<IActionResult> UpdateImageUrl(string id, [FromForm] IFormFile? image, CancellationToken cancellationToken)
+    {
+        var currentUserId = _currentUser.UserId;
+        var isAdmin = _currentUser.IsAdmin;
+
+        if (currentUserId != id && !isAdmin)
+        {
+            return Forbid();
+        }
+
+        if (image is null || image.Length == 0)
+        {
+            return BadRequest("An image is required.");
+        }
+
+        const long maximumSize = 5 * 1024 * 1024;
+
+        if (image.Length > maximumSize)
+        {
+            return BadRequest("Image must be 5 MB or smaller.");
+        }
+
+        var allowedTypes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["image/jpeg"] = ".jpg",
+                ["image/png"] = ".png"
+            };
+
+        if (!allowedTypes.TryGetValue(image.ContentType, out var extension))
+        {
+            return BadRequest("Only JPEG, PNG are allowed.");
+        }
+
+        await using var stream = image.OpenReadStream();
+
+        var user = await _userService.UpdateImageUrlAsync(id, stream, extension, image.ContentType, cancellationToken);
+
+        return user is null ? NotFound() : Ok(user);
+    }
+
+    [HttpDelete("{id}/image-url")]
+    [Authorize(Roles = "User,Admin")]
+    public async Task<IActionResult> RemoveImageUrlAsync(string id, CancellationToken cancellationToken)
+    {
+        var currentUserId = _currentUser.UserId;
+        var isAdmin = _currentUser.IsAdmin;
+
+        if (currentUserId != id && !isAdmin)
+        {
+            return Forbid();
+        }
+
+        var user = await _userService.RemoveImageUrlAsync(id, cancellationToken);
 
         return user is null ? NotFound() : Ok(user);
     }

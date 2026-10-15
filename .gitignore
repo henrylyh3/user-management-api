@@ -10,6 +10,9 @@
 # Serilog
 src/UserManagement.Web/Logs/
 
+# wwwroot
+src/UserManagement.Web/wwwroot/uploads/
+
 # Build results
 [Dd]ebug/
 [Dd]ebugPublic/

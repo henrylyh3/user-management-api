@@ -44,4 +44,46 @@ public class UserRepository : MongoDBClient, IUserRepository
             .Find(user => user.Id == id)
             .FirstOrDefaultAsync();
     }
+
+    public async Task<User?> UpdateProfileAsync(string id, string name, string email)
+    {
+        var update = Builders<User>.Update
+            .Set(user => user.Name, name)
+            .Set(user => user.Email, email)
+            .Set(user => user.UpdatedOn, DateTime.UtcNow);
+
+        return await _usersCollection.FindOneAndUpdateAsync(
+            user => user.Id == id,
+            update,
+            new FindOneAndUpdateOptions<User>
+            {
+                ReturnDocument = ReturnDocument.After
+            });
+    }
+
+    public async Task<User?> UpdateImageUrlAsync( string id, string imageUrl)
+    {
+        var update = Builders<User>.Update
+            .Set(user => user.ImageUrl, imageUrl)
+            .Set(user => user.UpdatedOn, DateTime.UtcNow);
+
+        return await _usersCollection.FindOneAndUpdateAsync(user => user.Id == id, update, new FindOneAndUpdateOptions<User>
+            {
+                ReturnDocument = ReturnDocument.After
+            }
+        );
+    }
+
+    public async Task<User?> RemoveImageUrlAsync( string id )
+    {
+        var update = Builders<User>.Update
+            .Set(user => user.ImageUrl, null)
+            .Set(user => user.UpdatedOn, DateTime.UtcNow);
+
+        return await _usersCollection.FindOneAndUpdateAsync(user => user.Id == id, update, new FindOneAndUpdateOptions<User>
+            {
+                ReturnDocument = ReturnDocument.After
+            }
+        );
+    }
 }
