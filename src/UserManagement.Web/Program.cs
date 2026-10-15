@@ -127,7 +127,10 @@ if (app.Environment.IsDevelopment())
 app.UseSerilogRequestLogging();
 app.UseCors("Frontend");
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseStaticFiles();
 

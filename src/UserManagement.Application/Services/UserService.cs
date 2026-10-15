@@ -27,7 +27,8 @@ public class UserService : IUserService
             .Select(user => new UserDto
             {
                 Id = user.Id,
-                Name = user.Name,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
                 Email = user.Email,
                 ImageUrl = string.IsNullOrWhiteSpace(user.ImageUrl) ? null : _fileStorage.GetUrl(user.ImageUrl)
             })
@@ -45,7 +46,8 @@ public class UserService : IUserService
         return new UserDto
         {
             Id = user.Id,
-            Name = user.Name,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
             Email = user.Email,
             ImageUrl = string.IsNullOrWhiteSpace(user.ImageUrl) ? null : _fileStorage.GetUrl(user.ImageUrl)
         };
@@ -53,7 +55,7 @@ public class UserService : IUserService
 
     public async Task<UserDto?> UpdateProfileAsync(string id, UpdateUserProfileRequest request)
     {
-        var user = await _userRepository.UpdateProfileAsync(id, request.Name.Trim(), request.Email.Trim().ToLowerInvariant());
+        var user = await _userRepository.UpdateProfileAsync(id, request.FirstName.Trim(), request.LastName.Trim());
 
         if (user is null)
         {
@@ -63,7 +65,8 @@ public class UserService : IUserService
         return new UserDto
         {
             Id = user.Id,
-            Name = user.Name,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
             Email = user.Email,
             ImageUrl = string.IsNullOrWhiteSpace(user.ImageUrl) ? null : _fileStorage.GetUrl(user.ImageUrl)
         };
@@ -108,7 +111,8 @@ public class UserService : IUserService
         return new UserDto
         {
             Id = updatedUser.Id,
-            Name = updatedUser.Name,
+            FirstName = updatedUser.FirstName,
+            LastName = updatedUser.LastName,
             Email = updatedUser.Email,
             ImageUrl = _fileStorage.GetUrl(updatedUser.ImageUrl!)
         };
@@ -141,7 +145,8 @@ public class UserService : IUserService
         return new UserDto
         {
             Id = updatedUser.Id,
-            Name = updatedUser.Name,
+            FirstName = updatedUser.FirstName,
+            LastName = updatedUser.LastName,
             Email = updatedUser.Email,
             ImageUrl = null
         };

@@ -34,7 +34,8 @@ public class AuthService : IAuthService
 
         var user = new User
         {
-            Name = request.Name.Trim(),
+            FirstName = request.FirstName.Trim(),
+            LastName = request.LastName.Trim(),
             Email = email,
             Role = "User",
             CreatedOn = DateTime.UtcNow,

@@ -37,7 +37,8 @@ var passwordHasher =
 await SeedUserAsync(
     repository,
     passwordHasher,
-    name: "user",
+    firstName: "user",
+    lastName: "user",
     email: "user@user.com",
     password: "user",
     role: "User"
@@ -46,7 +47,8 @@ await SeedUserAsync(
 await SeedUserAsync(
     repository,
     passwordHasher,
-    name: "admin",
+    firstName: "admin",
+    lastName: "admin",
     email: "admin@admin.com",
     password: "admin",
     role: "Admin"
@@ -57,7 +59,8 @@ Console.WriteLine("User seeding completed.");
 static async Task SeedUserAsync(
     UserRepository repository,
     IPasswordHasher<User> passwordHasher,
-    string name,
+    string firstName,
+    string lastName,
     string email,
     string password,
     string role)
@@ -79,7 +82,8 @@ static async Task SeedUserAsync(
 
     var user = new User
     {
-        Name = name,
+        FirstName = firstName,
+        LastName = lastName,
         Email = normalizedEmail,
         Role = role,
         CreatedOn = DateTime.UtcNow,

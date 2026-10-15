@@ -70,9 +70,9 @@ public class UserController : ControllerBase
         return updatedUser is null ? NotFound() : Ok(updatedUser);
     }
 
-    [HttpPut("{id}/image-url")]
+    [HttpPut("{id}/profile-picture")]
     [Authorize(Roles = "User,Admin")]
-    [RequestSizeLimit(5 * 1024 * 1024)]
+    [RequestSizeLimit(2 * 1024 * 1024)]
     public async Task<IActionResult> UpdateImageUrl(string id, [FromForm] IFormFile? image, CancellationToken cancellationToken)
     {
         var currentUserId = _currentUser.UserId;
@@ -88,11 +88,11 @@ public class UserController : ControllerBase
             return BadRequest("An image is required.");
         }
 
-        const long maximumSize = 5 * 1024 * 1024;
+        const long maximumSize = 2 * 1024 * 1024;
 
         if (image.Length > maximumSize)
         {
-            return BadRequest("Image must be 5 MB or smaller.");
+            return BadRequest("Image must be 2 MB or smaller.");
         }
 
         var allowedTypes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -113,7 +113,7 @@ public class UserController : ControllerBase
         return user is null ? NotFound() : Ok(user);
     }
 
-    [HttpDelete("{id}/image-url")]
+    [HttpDelete("{id}/profile-picture")]
     [Authorize(Roles = "User,Admin")]
     public async Task<IActionResult> RemoveImageUrlAsync(string id, CancellationToken cancellationToken)
     {

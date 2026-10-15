@@ -45,11 +45,11 @@ public class UserRepository : MongoDBClient, IUserRepository
             .FirstOrDefaultAsync();
     }
 
-    public async Task<User?> UpdateProfileAsync(string id, string name, string email)
+    public async Task<User?> UpdateProfileAsync(string id, string firstName, string lastName)
     {
         var update = Builders<User>.Update
-            .Set(user => user.Name, name)
-            .Set(user => user.Email, email)
+            .Set(user => user.FirstName, firstName)
+            .Set(user => user.LastName, lastName)
             .Set(user => user.UpdatedOn, DateTime.UtcNow);
 
         return await _usersCollection.FindOneAndUpdateAsync(
