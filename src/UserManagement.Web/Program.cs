@@ -11,6 +11,15 @@ using UserManagement.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var renderPort =
+    Environment.GetEnvironmentVariable("PORT");
+
+if (!string.IsNullOrWhiteSpace(renderPort))
+{
+    builder.WebHost.UseUrls(
+        $"http://0.0.0.0:{renderPort}");
+}
+
 var logPath = Path.Combine(
     builder.Environment.ContentRootPath,
     "Logs",
@@ -52,12 +61,18 @@ builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 //cors
+var allowedOrigins = builder.Configuration
+    .GetSection("Cors:AllowedOrigins")
+    .Get<string[]>()
+    ?? throw new InvalidOperationException(
+        "CORS allowed origins configuration is missing.");
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("Frontend", policy =>
     {
         policy
-            .WithOrigins("http://localhost:3000")
+            .WithOrigins(allowedOrigins)
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
@@ -111,8 +126,8 @@ builder.Services.AddAuthorization();
 //current user
 builder.Services.AddHttpContextAccessor();
 
-builder.Services.AddScoped<ICurrentUserService,CurrentUserService>();
-builder.Services.AddScoped<IFileStorageService,LocalFileStorageService>();
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
 //app
 
 var app = builder.Build();
