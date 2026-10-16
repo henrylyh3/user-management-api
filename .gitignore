@@ -10,6 +10,9 @@
 # Serilog
 src/UserManagement.Web/Logs/
 
+#appsetting
+appsettings.*.json
+
 # wwwroot
 src/UserManagement.Web/wwwroot/uploads/
 

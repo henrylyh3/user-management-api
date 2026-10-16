@@ -53,7 +53,7 @@ public class UserController : ControllerBase
         return user is null ? NotFound() : Ok(user);
     }
 
-    [HttpPut("{id}/profile")]
+    [HttpPut("{id}")]
     [Authorize(Roles = "User,Admin")]
     public async Task<IActionResult> UpdateProfile( string id, [FromBody] UpdateUserProfileRequest request)
     {
