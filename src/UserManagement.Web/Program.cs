@@ -157,6 +157,9 @@ builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 //app
 
 var app = builder.Build();
+
+app.Logger.LogInformation("File storage service: {StorageService}", useR2 ? nameof(CloudflareR2StorageService) : nameof(LocalFileStorageService));
+
 app.UseExceptionHandler();
 // Swagger
 if (app.Environment.IsDevelopment())

@@ -1,0 +1,412 @@
+{
+  "info": {
+    "_postman_id": "b409fa4b-6d5c-4846-be9b-40f2d10c1f56",
+    "name": "User Management",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "42802904"
+  },
+  "item": [
+    {
+      "name": "WEB Local",
+      "item": [
+        {
+          "name": "health api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/health",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "health"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/health",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "health"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "WEB Prod",
+      "item": [
+        {
+          "name": "health api",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://user-management-web-eta.vercel.app/api/health",
+              "protocol": "https",
+              "host": [
+                "user-management-web-eta",
+                "vercel",
+                "app"
+              ],
+              "path": [
+                "api",
+                "health"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://user-management-web-eta.vercel.app/health",
+              "protocol": "https",
+              "host": [
+                "user-management-web-eta",
+                "vercel",
+                "app"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "API Dev",
+      "item": [
+        {
+          "name": "AUTH",
+          "item": [
+            {
+              "name": "Signup",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"henry\",\n  \"email\": \"asd@a.com\",\n  \"password\": \"password\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "https://localhost:7001/api/auth/signup",
+                  "protocol": "https",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "7001",
+                  "path": [
+                    "api",
+                    "auth",
+                    "signup"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Signin",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"user@user.com\",\n  \"password\": \"user\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:5000/api/auth/signin",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "5000",
+                  "path": [
+                    "api",
+                    "auth",
+                    "signin"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Whoami",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2YWQwZDQxNGVmMGU1MDRiOGNiZTFmMzkiLCJlbWFpbCI6InVzZXJAdXNlci5jb20iLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoidXNlciB1c2VyIiwicm9sZSI6IlVzZXIiLCJleHAiOjE3OTIwODAxMDIsImlzcyI6IlVzZXJNYW5hZ2VtZW50QXBpIiwiYXVkIjoiVXNlck1hbmFnZW1lbnRDbGllbnQifQ.UP56koFx31LfxKiGkaY3Xj2i1-q4K2nJv-Dou87Q4lI",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"asd@a.com\",\n  \"password\": \"password\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:5000/api/auth/whoami",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "5000",
+                  "path": [
+                    "api",
+                    "auth",
+                    "whoami"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "User",
+          "item": [
+            {
+              "name": "User",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2YWNmM2FiODMzNWRlNTVjNGI1N2ZlZjIiLCJlbWFpbCI6ImFzZEBhLmNvbSIsImh0dHA6Ly9zY2hlbWFzLnhtbHNvYXAub3JnL3dzLzIwMDUvMDUvaWRlbnRpdHkvY2xhaW1zL25hbWUiOiJoZW5yeSIsInJvbGUiOiJBZG1pbiIsImV4cCI6MTc5MTk4NzE4OSwiaXNzIjoiVXNlck1hbmFnZW1lbnRBcGkiLCJhdWQiOiJVc2VyTWFuYWdlbWVudENsaWVudCJ9.5PgOhxeMigbsKzVTKA6TB8_bTR92ldhceBi3AenOSZI",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "https://localhost:7001/api/User/6acf3ab8335de55c4b57fef2",
+                  "protocol": "https",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "7001",
+                  "path": [
+                    "api",
+                    "User",
+                    "6acf3ab8335de55c4b57fef2"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "API Prod",
+      "item": [
+        {
+          "name": "AUTH",
+          "item": [
+            {
+              "name": "Signup",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"firstName\": \"henry\",\n  \"lastName\": \"henry\",\n  \"email\": \"asd@a.com\",\n  \"password\": \"password\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "https://user-management-api-md95.onrender.com/api/auth/signup",
+                  "protocol": "https",
+                  "host": [
+                    "user-management-api-md95",
+                    "onrender",
+                    "com"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "signup"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Signin",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"user@user.com\",\n  \"password\": \"user\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "https://user-management-api-md95.onrender.com/api/auth/signin",
+                  "protocol": "https",
+                  "host": [
+                    "user-management-api-md95",
+                    "onrender",
+                    "com"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "signin"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Whoami",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{json_web_token_0v4v}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"asd@a.com\",\n  \"password\": \"password\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "https://user-management-api-md95.onrender.com/api/auth/whoami",
+                  "protocol": "https",
+                  "host": [
+                    "user-management-api-md95",
+                    "onrender",
+                    "com"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "whoami"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "User",
+          "item": [
+            {
+              "name": "User",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{json_web_token_0ws7}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "https://user-management-api-md95.onrender.com/api/User/6acf3ab8335de55c4b57fef2",
+                  "protocol": "https",
+                  "host": [
+                    "user-management-api-md95",
+                    "onrender",
+                    "com"
+                  ],
+                  "path": [
+                    "api",
+                    "User",
+                    "6acf3ab8335de55c4b57fef2"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "json_web_token_0v4v",
+      "secret": true
+    },
+    {
+      "key": "json_web_token_0ws7",
+      "secret": true
+    }
+  ]
+}
