@@ -80,6 +80,20 @@ public api -> browser displays the uploaded image
 s3 api -> authenticated upload and deletion
 -using AWSSDK package s3 api to connect to cloudflare via s3 api
 
+# Database: mongodb
+
+- image of database table('Users table.png') and index list('Users index.png') is provided on the root folder
+- command to add index to email column, alternatively add from mongodb compass GUI
+
+1. use UserManagement
+2. db.users.createIndex({ Email: 1 }, { unique: true, name: "ux_users_email" })
+
+# hosting (Render free tier)
+
+- The application is deployed as a docker web service on render free tier
+- Production API: https://user-management-api-md95.onrender.com
+- Health check: GET https://user-management-api-md95.onrender.com/health
+
 # render variable
 
 ASPNETCORE_ENVIRONMENT =
@@ -94,21 +108,19 @@ CloudflareR2\_\_PublicBaseUrl =
 CloudflareR2\_\_S3Endpoint =
 FileStorage\_\_Provider=CloudflareR2
 
-# Database: mongodb
-
-- database is using mongo db free tier cluster, if the application having issue with connection with the database, please connect author (henrylyh96@gmail.com) to whitelist the ip
-- image of database table('Users table.png') and index list('Users index.png') is provided on the root folder
-- command to add index to email column, alternatively add from mongodb compass GUI
-
-1. use UserManagement
-2. db.users.createIndex({ Email: 1 }, { unique: true, name: "ux_users_email" })
-
 # assumption
 
 - new user gets User role and not able to change role
 - admin role is created from seed only (admin@admin.com)
 - jwt token expire on 60 min
 - mongodb is available before api calls
+
+# limitation
+
+- render, mongodb, cloudflareR2 file storage all runs on free tier
+- render will enter sleep mode when inactive and will require around 1 minute for cold start
+- mongodb only allow whitelisted IP(s) to access, if /health is OK but database continue to fail, contact the author (henrylyh96@gmail.com)
+- Cloudflare R2 includes 10 GB-month of storage in its free tier. Usage beyond this limit may incur charges.
 
 # useful link
 
