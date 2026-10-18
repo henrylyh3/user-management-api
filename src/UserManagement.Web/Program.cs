@@ -8,6 +8,9 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using UserManagement.Application.Interfaces;
 using UserManagement.Web.Services;
+using Amazon.Runtime;
+using Amazon.S3;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -55,6 +58,30 @@ builder.Services.AddApplication();
 builder.Services.Configure<MongoDbSettings>(
     builder.Configuration.GetSection("MongoDB")
 );
+
+//Cloudflare r2 setting
+// File storage
+var useR2 = string.Equals(builder.Configuration["FileStorage:Provider"], "CloudflareR2", StringComparison.OrdinalIgnoreCase);
+
+if (useR2)
+{
+    builder.Services.Configure<CloudflareR2Settings>(builder.Configuration.GetSection("CloudflareR2"));
+
+    builder.Services.AddSingleton<IAmazonS3>(services =>
+    {
+        var settings = services.GetRequiredService<IOptions<CloudflareR2Settings>>().Value;
+        var credentials = new BasicAWSCredentials(settings.AccessKeyId, settings.SecretAccessKey);
+        var config = new AmazonS3Config { ServiceURL = settings.S3Endpoint };
+
+        return new AmazonS3Client(credentials, config);
+    });
+
+    builder.Services.AddScoped<IFileStorageService, CloudflareR2StorageService>();
+}
+else
+{
+    builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
+}
 
 builder.Services.AddProblemDetails();
 
@@ -127,7 +154,6 @@ builder.Services.AddAuthorization();
 builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
-builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
 //app
 
 var app = builder.Build();

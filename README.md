@@ -4,8 +4,7 @@
 
 # Command to run
 
-dotnet new globaljson --sdk-version 10.0.100dotnet dev-certs https --trust
-dotnet run --project src/UserManagement.Web/UserManagement.Web.csproj --launch-profile https
+dotnet run --project src/UserManagement.Web/UserManagement.Web.csproj --launch-profile http
 
 # Command to run seed
 
@@ -42,3 +41,26 @@ update profile-> update name/email -> return updated profile + image
 update profile image -> store image -> update imageurl -> delete previous image(if any) -> return updated profile + image
 remove image -> remove image, delete imageurl -> return updated profile + image(null)
 get user -> get profile + image
+
+# render variable
+
+ASPNETCORE_ENVIRONMENT =
+Cors\_\_AllowedOrigins\_\_0
+Jwt\_\_Key
+MongoDB\_\_ConnectionString
+MongoDB\_\_DatabaseName
+CloudflareR2\_\_AccessKeyId
+CloudflareR2\_\_SecretAccessKey
+CloudflareR2\_\_BucketName
+CloudflareR2\_\_PublicBaseUrl
+CloudflareR2\_\_S3Endpoint
+FileStorage\_\_Provider=CloudflareR2
+
+# Encryption
+
+ASP .Net Core built in PasswordHasher -> generate random salt -> self algorithm to create hash
+
+# file storage (Local / CloudflareR2)
+
+public api -> browser displays the uploaded image
+s3 api -> authenticated upload and deletion
