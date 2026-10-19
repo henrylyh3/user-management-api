@@ -108,6 +108,12 @@ CloudflareR2\_\_PublicBaseUrl =
 CloudflareR2\_\_S3Endpoint =
 FileStorage\_\_Provider=CloudflareR2
 
+# Unit test
+
+- using Moq & xUnit
+- command to run: dotnet test UserManagement.UnitTests/UserManagement.UnitTests.csproj
+- test cases covers: signup, signin, get user, get users, update user, update image, delete image
+
 # assumption
 
 - new user gets User role and not able to change role
