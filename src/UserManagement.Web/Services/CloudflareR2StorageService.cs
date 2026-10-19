@@ -6,25 +6,23 @@ using UserManagement.Core.Settings;
 
 namespace UserManagement.Web.Services;
 
-public sealed class CloudflareR2StorageService
-    : IFileStorageService
+public sealed class CloudflareR2StorageService : IFileStorageService
 {
     private readonly IAmazonS3 _s3Client;
     private readonly CloudflareR2Settings _settings;
+    private readonly ILogger<CloudflareR2StorageService> _logger;
 
     public CloudflareR2StorageService(
         IAmazonS3 s3Client,
-        IOptions<CloudflareR2Settings> options)
+        IOptions<CloudflareR2Settings> options,
+        ILogger<CloudflareR2StorageService> logger)
     {
         _s3Client = s3Client;
         _settings = options.Value;
+        _logger = logger;
     }
 
-    public async Task UploadAsync(
-        Stream stream,
-        string fileKey,
-        string contentType,
-        CancellationToken cancellationToken = default)
+    public async Task UploadAsync(Stream stream, string fileKey, string contentType, CancellationToken cancellationToken = default)
     {
         var request = new PutObjectRequest
         {
@@ -38,14 +36,12 @@ public sealed class CloudflareR2StorageService
             DisableDefaultChecksumValidation = true
         };
 
-        await _s3Client.PutObjectAsync(
-            request,
-            cancellationToken);
+        await _s3Client.PutObjectAsync(request, cancellationToken);
+
+        _logger.LogInformation("Uploaded object {FileKey} to R2 bucket {BucketName}", fileKey, _settings.BucketName);
     }
 
-    public async Task DeleteAsync(
-        string fileKey,
-        CancellationToken cancellationToken = default)
+    public async Task DeleteAsync(string fileKey, CancellationToken cancellationToken = default)
     {
         var request = new DeleteObjectRequest
         {
@@ -53,15 +49,13 @@ public sealed class CloudflareR2StorageService
             Key = fileKey
         };
 
-        await _s3Client.DeleteObjectAsync(
-            request,
-            cancellationToken);
+        await _s3Client.DeleteObjectAsync(request, cancellationToken);
+        _logger.LogInformation("Deleted object {FileKey} from R2 bucket {BucketName}", fileKey, _settings.BucketName);
     }
 
     public string GetUrl(string fileKey)
     {
-        return
-            $"{_settings.PublicBaseUrl.TrimEnd('/')}/" +
-            fileKey.TrimStart('/');
+        // PublicBaseUrl for read only; S3Endpoint is use for write / delete
+        return $"{_settings.PublicBaseUrl.TrimEnd('/')}/" + fileKey.TrimStart('/');
     }
 }

@@ -82,7 +82,7 @@ public class UserService : IUserService
         }
 
         var newImageUrl = $"profile-images/{id}/{Guid.NewGuid():N}{extension}";
-
+        // Upload the replacement first so the existing image remains available if upload fails
         await _fileStorage.UploadAsync(imageStream, newImageUrl, contentType, cancellationToken);
 
         User? updatedUser;
@@ -99,13 +99,13 @@ public class UserService : IUserService
 
         if (updatedUser is null)
         {
-            await _fileStorage.DeleteAsync( newImageUrl, cancellationToken);
+            await _fileStorage.DeleteAsync(newImageUrl, cancellationToken);
             return null;
         }
 
-        if (!string.IsNullOrWhiteSpace( existingUser.ImageUrl))
+        if (!string.IsNullOrWhiteSpace(existingUser.ImageUrl))
         {
-            await _fileStorage.DeleteAsync( existingUser.ImageUrl,cancellationToken);
+            await _fileStorage.DeleteAsync(existingUser.ImageUrl, cancellationToken);
         }
 
         return new UserDto
@@ -134,11 +134,11 @@ public class UserService : IUserService
         {
             return null;
         }
-        
+
         //delete image
         if (!string.IsNullOrWhiteSpace(existingUser.ImageUrl))
         {
-            await _fileStorage.DeleteAsync( existingUser.ImageUrl, cancellationToken);
+            await _fileStorage.DeleteAsync(existingUser.ImageUrl, cancellationToken);
         }
 
 

@@ -143,6 +143,7 @@ builder.Services
 
                 RoleClaimType = "role",
                 NameClaimType = ClaimTypes.Name,
+                //reject token immediately after expiry
                 ClockSkew = TimeSpan.Zero
             };
     });

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Serilog;
 using UserManagement.Application.Interfaces;
 using UserManagement.Core.DTOs;
 
@@ -11,14 +12,17 @@ public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
     private readonly ICurrentUserService _currentUser;
+    private readonly ILogger<AuthController> _logger;
 
     public AuthController(
         IAuthService authService,
-        ICurrentUserService currentUser
+        ICurrentUserService currentUser,
+        ILogger<AuthController> logger
         )
     {
         _authService = authService;
         _currentUser = currentUser;
+        _logger = logger;
     }
 
     [AllowAnonymous]
@@ -30,12 +34,13 @@ public class AuthController : ControllerBase
 
         if (result is null)
         {
+            _logger.LogWarning("Signup rejected because email already exists");
             return Conflict(new
             {
                 message = "Email is already signed up."
             });
         }
-
+        _logger.LogInformation("User signup completed");
         return Ok(result);
     }
 

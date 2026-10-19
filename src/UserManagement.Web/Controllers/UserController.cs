@@ -31,7 +31,7 @@ public class UserController : ControllerBase
 
         var users = await _userService.GetUsersAsync();
 
-        _logger.LogInformation( "Retrieved {UserCount} users", users.Count);
+        _logger.LogInformation("Retrieved {UserCount} users", users.Count);
 
         return Ok(users);
     }
@@ -45,6 +45,7 @@ public class UserController : ControllerBase
 
         if (currentUserId != id && !isAdmin)
         {
+            _logger.LogWarning("Access denied for user {CurrentUserId} targeting user {TargetUserId}", currentUserId, id);
             return Forbid();
         }
 
@@ -55,13 +56,14 @@ public class UserController : ControllerBase
 
     [HttpPut("{id}")]
     [Authorize(Roles = "User,Admin")]
-    public async Task<IActionResult> UpdateProfile( string id, [FromBody] UpdateUserProfileRequest request)
+    public async Task<IActionResult> UpdateProfile(string id, [FromBody] UpdateUserProfileRequest request)
     {
         var currentUserId = _currentUser.UserId;
         var isAdmin = _currentUser.IsAdmin;
 
         if (currentUserId != id && !isAdmin)
         {
+            _logger.LogWarning("Access denied for user {CurrentUserId} targeting user {TargetUserId}", currentUserId, id);
             return Forbid();
         }
 
@@ -80,6 +82,7 @@ public class UserController : ControllerBase
 
         if (currentUserId != id && !isAdmin)
         {
+            _logger.LogWarning("Access denied for user {CurrentUserId} targeting user {TargetUserId}", currentUserId, id);
             return Forbid();
         }
 
@@ -96,20 +99,20 @@ public class UserController : ControllerBase
         }
 
         var allowedTypes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-            {
-                ["image/jpeg"] = ".jpg",
-                ["image/png"] = ".png"
-            };
+        {
+            ["image/jpeg"] = ".jpg",
+            ["image/png"] = ".png"
+        };
 
         if (!allowedTypes.TryGetValue(image.ContentType, out var extension))
         {
             return BadRequest("Only JPEG, PNG are allowed.");
         }
 
+        _logger.LogInformation("Uploading profile image for user {UserId}, type {ContentType}, size {Size}", id, image.ContentType, image.Length);
         await using var stream = image.OpenReadStream();
-
         var user = await _userService.UpdateImageUrlAsync(id, stream, extension, image.ContentType, cancellationToken);
-
+        _logger.LogInformation("Profile image updated for user {UserId}", id);
         return user is null ? NotFound() : Ok(user);
     }
 
@@ -122,11 +125,12 @@ public class UserController : ControllerBase
 
         if (currentUserId != id && !isAdmin)
         {
+            _logger.LogWarning("Access denied for user {CurrentUserId} targeting user {TargetUserId}", currentUserId, id);
             return Forbid();
         }
 
         var user = await _userService.RemoveImageUrlAsync(id, cancellationToken);
-
+        _logger.LogInformation("Profile image removed for user {UserId}", id);
         return user is null ? NotFound() : Ok(user);
     }
 }
