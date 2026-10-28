@@ -4,7 +4,7 @@ namespace UserManagement.Application.Interfaces;
 
 public interface IUserService
 {
-    Task<List<UserDto>> GetUsersAsync();
+    Task<PagedResult<AdminUserDto>> GetUsersAsync(int page, int pageSize);
     Task<UserDto?> GetUserByIdAsync(string id);
 
     Task<UserDto?> UpdateProfileAsync(string id, UpdateUserProfileRequest request);

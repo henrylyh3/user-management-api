@@ -5,5 +5,5 @@ namespace UserManagement.Application.Interfaces;
 
 public interface IJwtTokenService
 {
-    AuthResponse CreateToken(User user);
+    AuthResponse CreateToken(User user, string sessionId);
 }

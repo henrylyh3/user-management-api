@@ -19,7 +19,7 @@ public class JwtTokenService : IJwtTokenService
         _settings = options.Value;
     }
 
-    public AuthResponse CreateToken(User user)
+    public AuthResponse CreateToken(User user, string sessionId)
     {
         var expiresAt = DateTime.UtcNow.AddMinutes(
             _settings.ExpiryMinutes
@@ -30,7 +30,9 @@ public class JwtTokenService : IJwtTokenService
             new Claim(JwtRegisteredClaimNames.Sub, user.Id),
             new Claim(JwtRegisteredClaimNames.Email, user.Email),
             new Claim(ClaimTypes.Name, $"{user.FirstName} {user.LastName}".Trim()),
-            new Claim("role", user.Role)
+            new Claim("role", user.Role),
+            new Claim("ver", user.TokenVersion.ToString(System.Globalization.CultureInfo.InvariantCulture)),
+            new Claim("sid", sessionId)
         };
 
         var key = new SymmetricSecurityKey(

@@ -4,6 +4,8 @@ using Microsoft.Extensions.Hosting;
 using UserManagement.Core.Models;
 using UserManagement.Core.Settings;
 using UserManagement.DataAccess.Repositories;
+using UserManagement.DataAccess.Database;
+using UserManagement.DataAccess.Interfaces;
 
 var builder = Host.CreateApplicationBuilder(
     new HostApplicationBuilderSettings
@@ -18,6 +20,7 @@ builder.Services.Configure<MongoDbSettings>(
 );
 
 builder.Services.AddScoped<UserRepository>();
+builder.Services.AddScoped<IAuditActorProvider, SystemAuditActorProvider>();
 
 builder.Services.AddScoped<
     IPasswordHasher<User>,
@@ -41,7 +44,7 @@ await SeedUserAsync(
     lastName: "user",
     email: "user@user.com",
     password: "user",
-    role: "User"
+    role: UserRoles.User
 );
 
 await SeedUserAsync(
@@ -51,7 +54,7 @@ await SeedUserAsync(
     lastName: "admin",
     email: "admin@admin.com",
     password: "admin",
-    role: "Admin"
+    role: UserRoles.Admin
 );
 
 Console.WriteLine("User seeding completed.");
@@ -86,8 +89,7 @@ static async Task SeedUserAsync(
         LastName = lastName,
         Email = normalizedEmail,
         Role = role,
-        CreatedOn = DateTime.UtcNow,
-        UpdatedOn = DateTime.UtcNow
+        IsEmailVerified = true
     };
 
     user.PasswordHash =

@@ -9,30 +9,45 @@ public class UserService : IUserService
 {
     private readonly IUserRepository _userRepository;
     private readonly IFileStorageService _fileStorage;
+    private readonly IAuditEventWriter _auditEventWriter;
 
     public UserService(
         IUserRepository userRepository,
-        IFileStorageService fileStorage
+        IFileStorageService fileStorage,
+        IAuditEventWriter auditEventWriter
     )
     {
         _userRepository = userRepository;
         _fileStorage = fileStorage;
+        _auditEventWriter = auditEventWriter;
     }
 
-    public async Task<List<UserDto>> GetUsersAsync()
+    public async Task<PagedResult<AdminUserDto>> GetUsersAsync(int page, int pageSize)
     {
-        var users = await _userRepository.GetUsersAsync();
+        var users = await _userRepository.GetUsersAsync((page - 1) * pageSize, pageSize);
+        var totalCount = await _userRepository.CountUsersAsync();
 
-        return users
-            .Select(user => new UserDto
+        var items = users
+            .Select(user => new AdminUserDto
             {
                 Id = user.Id,
                 FirstName = user.FirstName,
                 LastName = user.LastName,
                 Email = user.Email,
-                ImageUrl = string.IsNullOrWhiteSpace(user.ImageUrl) ? null : _fileStorage.GetUrl(user.ImageUrl)
+                ImageUrl = string.IsNullOrWhiteSpace(user.ImageUrl) ? null : _fileStorage.GetUrl(user.ImageUrl),
+                Role = user.Role,
+                Status = user.Status.ToString(),
+                LockoutEnd = user.LockoutEnd,
+                IsLockedOut = user.LockoutEnd > DateTime.UtcNow,
+                LastSignInOn = user.LastSignInOn,
+                CreatedOn = user.CreatedOn,
+                ModifiedOn = user.ModifiedOn,
+                CreatedBy = user.CreatedBy,
+                ModifiedBy = user.ModifiedBy
             })
             .ToList();
+
+        return new PagedResult<AdminUserDto> { Items = items, Page = page, PageSize = pageSize, TotalCount = totalCount };
     }
     public async Task<UserDto?> GetUserByIdAsync(string id)
     {
@@ -62,6 +77,7 @@ public class UserService : IUserService
             return null;
         }
 
+        await WriteAuditAsync("ProfileUpdated", user.Id);
         return new UserDto
         {
             Id = user.Id,
@@ -108,6 +124,7 @@ public class UserService : IUserService
             await _fileStorage.DeleteAsync(existingUser.ImageUrl, cancellationToken);
         }
 
+        await WriteAuditAsync("ProfileImageUpdated", updatedUser.Id, cancellationToken);
         return new UserDto
         {
             Id = updatedUser.Id,
@@ -141,7 +158,7 @@ public class UserService : IUserService
             await _fileStorage.DeleteAsync(existingUser.ImageUrl, cancellationToken);
         }
 
-
+        await WriteAuditAsync("ProfileImageRemoved", updatedUser.Id, cancellationToken);
         return new UserDto
         {
             Id = updatedUser.Id,
@@ -150,5 +167,10 @@ public class UserService : IUserService
             Email = updatedUser.Email,
             ImageUrl = null
         };
+    }
+
+    private Task WriteAuditAsync(string action, string userId, CancellationToken cancellationToken = default)
+    {
+        return _auditEventWriter.WriteAsync(new AuditEventRequest { Module = "UserProfile", Action = action, Outcome = AuditOutcome.Success, ResourceType = "User", ResourceId = userId }, cancellationToken);
     }
 }

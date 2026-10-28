@@ -1,0 +1,14 @@
+Use the $hallmark skill with the Coral theme.
+
+Redesign ONLY the sign-in page of my Next.js app.
+
+Requirements:
+- Use the existing Coral design tokens.
+- Preserve authentication functionality exactly.
+- Preserve form validation, API calls and navigation.
+- Change only UI, styling and presentation components.
+- Maintain responsive layout and accessibility.
+- Do not modify unrelated pages or backend code.
+- Run relevant lint and type checks.
+
+Stop after this page is complete.

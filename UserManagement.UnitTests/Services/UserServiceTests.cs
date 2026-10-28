@@ -11,10 +11,11 @@ public class UserServiceTests
 {
     private readonly Mock<IUserRepository> _repository = new();
     private readonly Mock<IFileStorageService> _fileStorage = new();
+    private readonly Mock<IAuditEventWriter> _auditEventWriter = new();
 
     private UserService CreateService()
     {
-        return new UserService(_repository.Object, _fileStorage.Object);
+        return new UserService(_repository.Object, _fileStorage.Object, _auditEventWriter.Object);
     }
 
     //  GET /user/id
@@ -37,17 +38,23 @@ public class UserServiceTests
     [Fact]
     public async Task GetUsersAsync_UsersExist_ReturnsUsers()
     {
+        var lastSignInOn = DateTime.UtcNow.AddMinutes(-5);
         var users = new List<User>
         {
-            new() { Id = "user-id", FirstName = "Henry", LastName = "Lee", Email = "henry@example.com" },
+            new() { Id = "user-id", FirstName = "Henry", LastName = "Lee", Email = "henry@example.com", LastSignInOn = lastSignInOn },
             new() { Id = "admin-id", FirstName = "Admin", LastName = "User", Email = "admin@example.com" }
         };
 
-        _repository.Setup(repository => repository.GetUsersAsync()).ReturnsAsync(users);
+        _repository.Setup(repository => repository.GetUsersAsync(0, 20)).ReturnsAsync(users);
+        _repository.Setup(repository => repository.CountUsersAsync()).ReturnsAsync(2);
 
-        var result = await CreateService().GetUsersAsync();
+        var result = await CreateService().GetUsersAsync(1, 20);
 
-        Assert.Equal(2, result.Count);
+        Assert.Equal(2, result.Items.Count);
+        Assert.Equal(2, result.TotalCount);
+        Assert.Equal(1, result.TotalPages);
+        Assert.Equal(lastSignInOn, result.Items[0].LastSignInOn);
+        Assert.Null(result.Items[1].LastSignInOn);
     }
 
     //  PUT /user/id 
@@ -64,6 +71,7 @@ public class UserServiceTests
         Assert.NotNull(result);
         Assert.Equal("Henry", result.FirstName);
         Assert.Equal("Lee", result.LastName);
+        _auditEventWriter.Verify(writer => writer.WriteAsync(It.Is<AuditEventRequest>(audit => audit.Module == "UserProfile" && audit.Action == "ProfileUpdated" && audit.ResourceId == "user-id"), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     // PUT /user/id/profile-picture

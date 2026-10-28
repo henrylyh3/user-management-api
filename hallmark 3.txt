@@ -1,0 +1,15 @@
+Revamp ONLY the Flutter sign-in screen using the
+Hallmark Coral visual design system already established
+in the Next.js application.
+
+Requirements:
+- Translate Coral colors, typography, spacing and
+  component styles into Flutter's ThemeData and widgets.
+- Preserve all business logic, state management,
+  authentication, navigation and backend integration.
+- Keep all existing features working.
+- Follow native Flutter layout and accessibility practices.
+- Do not modify unrelated screens.
+- Run dart format and flutter analyze for affected code.
+
+Stop after completing the sign-in screen.

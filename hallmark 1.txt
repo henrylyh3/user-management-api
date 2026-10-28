@@ -1,0 +1,77 @@
+Use the $hallmark skill with the Coral theme.
+
+## Objective
+Establish a reusable Hallmark Coral design system for my existing Next.js web and Flutter mobile applications.
+
+**This task is ONLY for establishing shared design tokens and theme foundations. DO NOT redesign any pages or screens yet.**
+
+## Phase 1 — Inspect and extract
+
+1. Read the Hallmark Coral theme documentation and relevant design rules.
+2. Inspect only the existing shared theme, style and UI configuration files in the Next.js project.
+3. Extract the Coral design values and principles, including:
+   - Primary, secondary, background and surface colors
+   - Text, muted text and border colors
+   - Success, warning, error and disabled states
+   - Typography, font sizes and weights
+   - Spacing scale
+   - Border radii
+   - Shadows and elevation
+   - Button, input, card and form styling
+   - Hover, focus and interaction states
+4. Use official Hallmark values wherever provided. If a value is unspecified, choose a compatible value and clearly identify it as an implementation decision.
+
+## Phase 2 — Create shared design tokens
+
+Create a platform-independent design token file:
+
+`design-tokens/coral.tokens.json`
+
+This should become the canonical source of truth for both web and mobile.
+
+Use semantic token names rather than page-specific colors or arbitrary values.
+
+Create concise documentation:
+
+`design-tokens/README.md`
+
+Explain how the tokens map to Next.js and Flutter.
+
+## Phase 3 — Configure Next.js theme foundation
+
+- Map the shared tokens to CSS variables and the existing Tailwind setup.
+- Reuse the project's existing styling architecture.
+- Update shared theme configuration only.
+- Do not modify individual pages or feature components.
+- Preserve all existing functionality and styling behavior outside this scope.
+
+## Phase 4 — Prepare Flutter theme mapping
+
+Document how the same tokens should map to Flutter's ThemeData, ColorScheme and shared widget styles.
+
+If the Flutter repository is not available in the current workspace, do not attempt to access it or create a second project.
+
+Do not redesign mobile screens in this phase.
+
+## Strict constraints
+
+- UI styling infrastructure only.
+- Do not change business logic, API integrations, authentication, navigation, state management or validation.
+- Do not modify backend code.
+- Do not install additional dependencies unless absolutely necessary.
+- Do not inspect unrelated source files or generated directories.
+- Do not redesign pages or screens.
+- Avoid repeated screenshot and visual-inspection cycles.
+- Keep changes minimal and reusable.
+- Run only relevant validation checks for modified files.
+- Do not perform unrelated refactoring.
+
+## Expected output
+
+1. Canonical Coral design token JSON file.
+2. Configured Next.js theme foundation.
+3. Documentation for reuse in Flutter.
+4. List of modified files.
+5. Brief explanation of the next implementation steps.
+
+**Stop after completing the shared design foundation. Do not proceed to redesigning pages or screens.**

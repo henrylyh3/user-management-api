@@ -19,8 +19,15 @@ WORKDIR /app
 
 COPY --from=build /app/publish .
 
+RUN addgroup --system appgroup \
+    && adduser --system --ingroup appgroup appuser \
+    && mkdir -p /app/Logs /app/wwwroot/uploads \
+    && chown -R appuser:appgroup /app
+
 ENV ASPNETCORE_URLS=http://0.0.0.0:10000
 
 EXPOSE 10000
+
+USER appuser
 
 ENTRYPOINT ["dotnet", "UserManagement.Web.dll"]
