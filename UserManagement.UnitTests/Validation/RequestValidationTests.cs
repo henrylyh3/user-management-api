@@ -62,6 +62,21 @@ public class RequestValidationTests
     }
 
     [Fact]
+    public void PasswordVerification_ShortCurrentPassword_IsValid()
+    {
+        Assert.Empty(Validate(new ChangePasswordRequest { CurrentPassword = "user", NewPassword = "new-password123" }));
+        Assert.Empty(Validate(new DeleteAccountRequest { CurrentPassword = "user" }));
+    }
+
+    [Fact]
+    public void ChangePasswordRequest_ShortNewPassword_RemainsInvalid()
+    {
+        var request = new ChangePasswordRequest { CurrentPassword = "user", NewPassword = "short" };
+        Assert.Contains(Validate(request), result => result.MemberNames.Contains(nameof(ChangePasswordRequest.NewPassword)));
+        Assert.DoesNotContain(Validate(request), result => result.MemberNames.Contains(nameof(ChangePasswordRequest.CurrentPassword)));
+    }
+
+    [Fact]
     public void UpdateUserProfileRequest_NamesExceedMaximumLengths_IsInvalid()
     {
         var request = new UpdateUserProfileRequest
