@@ -8,6 +8,7 @@
 **/.env
 **/.env.*
 **/appsettings*.json
+!src/UserManagement.Web/appsettings.json
 **/*.pem
 **/*.pfx
 
