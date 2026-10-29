@@ -39,6 +39,28 @@ public class RequestValidationTests
         Assert.Contains(results, result => result.MemberNames.Contains(nameof(SigninRequest.Password)));
     }
 
+    [Theory]
+    [InlineData("user")]
+    [InlineData("admin")]
+    [InlineData("a")]
+    public void SigninRequest_ShortExistingPassword_IsValid(string password)
+    {
+        Assert.Empty(Validate(new SigninRequest { Email = "user@example.com", Password = password }));
+    }
+
+    [Fact]
+    public void SigninRequest_EmptyPassword_IsInvalid()
+    {
+        Assert.Contains(Validate(new SigninRequest { Email = "user@example.com", Password = "" }), result => result.MemberNames.Contains(nameof(SigninRequest.Password)));
+    }
+
+    [Fact]
+    public void SignupRequest_ShortPassword_RemainsInvalid()
+    {
+        var request = new SignupRequest { FirstName = "Test", LastName = "User", Email = "user@example.com", Password = "user" };
+        Assert.Contains(Validate(request), result => result.MemberNames.Contains(nameof(SignupRequest.Password)));
+    }
+
     [Fact]
     public void UpdateUserProfileRequest_NamesExceedMaximumLengths_IsInvalid()
     {
