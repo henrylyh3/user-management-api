@@ -1,0 +1,39 @@
+name: Publish API PR artifact
+
+on:
+  pull_request:
+    branches: [release]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Run tests
+        run: dotnet test UserManagement.sln --configuration Release
+
+      - name: Package API
+        run: |
+          dotnet publish src/UserManagement.Web/UserManagement.Web.csproj \
+            --configuration Release -p:UseAppHost=false --output "$RUNNER_TEMP/api-publish"
+          tar -czf "$RUNNER_TEMP/user-management-api-${GITHUB_SHA}.tar.gz" -C "$RUNNER_TEMP/api-publish" .
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: user-management-api-${{ github.sha }}
+          path: ${{ runner.temp }}/user-management-api-${{ github.sha }}.tar.gz
+          if-no-files-found: error
+          compression-level: 0
