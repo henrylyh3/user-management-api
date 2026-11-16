@@ -2,8 +2,6 @@ using Microsoft.AspNetCore.Mvc;
 using UserManagement.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using UserManagement.Core.DTOs;
-using UserManagement.Core.Models;
-using UserManagement.Web.Validation;
 
 namespace UserManagement.Web.Controllers;
 
@@ -26,21 +24,21 @@ public class UserController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize(Roles = UserRoles.Admin)]
-    public async Task<IActionResult> GetUsers([FromQuery] PaginationRequest request)
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetUsers()
     {
         _logger.LogInformation("Getting all users");
 
-        var users = await _userService.GetUsersAsync(request.Page, request.PageSize);
+        var users = await _userService.GetUsersAsync();
 
-        _logger.LogInformation("Retrieved page {Page} containing {UserCount} users", users.Page, users.Items.Count);
+        _logger.LogInformation("Retrieved {UserCount} users", users.Count);
 
         return Ok(users);
     }
 
     [HttpGet("{id}")]
-    [Authorize(Roles = $"{UserRoles.User},{UserRoles.Admin}")]
-    public async Task<IActionResult> GetUser([MongoObjectId] string id)
+    [Authorize(Roles = "User,Admin")]
+    public async Task<IActionResult> GetUser(string id)
     {
         var currentUserId = _currentUser.UserId;
         var isAdmin = _currentUser.IsAdmin;
@@ -48,19 +46,17 @@ public class UserController : ControllerBase
         if (currentUserId != id && !isAdmin)
         {
             _logger.LogWarning("Access denied for user {CurrentUserId} targeting user {TargetUserId}", currentUserId, id);
-            return Problem(statusCode: StatusCodes.Status403Forbidden, title: "Forbidden", detail: "You are not allowed to access this user.");
+            return Forbid();
         }
 
         var user = await _userService.GetUserByIdAsync(id);
 
-        return user is null
-            ? Problem(statusCode: StatusCodes.Status404NotFound, title: "User not found", detail: "The requested user does not exist.")
-            : Ok(user);
+        return user is null ? NotFound() : Ok(user);
     }
 
     [HttpPut("{id}")]
-    [Authorize(Roles = $"{UserRoles.User},{UserRoles.Admin}")]
-    public async Task<IActionResult> UpdateProfile([MongoObjectId] string id, [FromBody] UpdateUserProfileRequest request)
+    [Authorize(Roles = "User,Admin")]
+    public async Task<IActionResult> UpdateProfile(string id, [FromBody] UpdateUserProfileRequest request)
     {
         var currentUserId = _currentUser.UserId;
         var isAdmin = _currentUser.IsAdmin;
@@ -68,20 +64,18 @@ public class UserController : ControllerBase
         if (currentUserId != id && !isAdmin)
         {
             _logger.LogWarning("Access denied for user {CurrentUserId} targeting user {TargetUserId}", currentUserId, id);
-            return Problem(statusCode: StatusCodes.Status403Forbidden, title: "Forbidden", detail: "You are not allowed to update this user.");
+            return Forbid();
         }
 
         var updatedUser = await _userService.UpdateProfileAsync(id, request);
 
-        return updatedUser is null
-            ? Problem(statusCode: StatusCodes.Status404NotFound, title: "User not found", detail: "The requested user does not exist.")
-            : Ok(updatedUser);
+        return updatedUser is null ? NotFound() : Ok(updatedUser);
     }
 
     [HttpPut("{id}/profile-picture")]
-    [Authorize(Roles = $"{UserRoles.User},{UserRoles.Admin}")]
+    [Authorize(Roles = "User,Admin")]
     [RequestSizeLimit(2 * 1024 * 1024)]
-    public async Task<IActionResult> UpdateImageUrl([MongoObjectId] string id, [FromForm] IFormFile? image, CancellationToken cancellationToken)
+    public async Task<IActionResult> UpdateImageUrl(string id, [FromForm] IFormFile? image, CancellationToken cancellationToken)
     {
         var currentUserId = _currentUser.UserId;
         var isAdmin = _currentUser.IsAdmin;
@@ -89,19 +83,19 @@ public class UserController : ControllerBase
         if (currentUserId != id && !isAdmin)
         {
             _logger.LogWarning("Access denied for user {CurrentUserId} targeting user {TargetUserId}", currentUserId, id);
-            return Problem(statusCode: StatusCodes.Status403Forbidden, title: "Forbidden", detail: "You are not allowed to update this user.");
+            return Forbid();
         }
 
         if (image is null || image.Length == 0)
         {
-            return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Image required", detail: "Select an image to upload.");
+            return BadRequest("An image is required.");
         }
 
         const long maximumSize = 2 * 1024 * 1024;
 
         if (image.Length > maximumSize)
         {
-            return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Image too large", detail: "Image must be 2 MB or smaller.");
+            return BadRequest("Image must be 2 MB or smaller.");
         }
 
         var allowedTypes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -112,27 +106,19 @@ public class UserController : ControllerBase
 
         if (!allowedTypes.TryGetValue(image.ContentType, out var extension))
         {
-            return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Unsupported image type", detail: "Only JPEG and PNG are allowed.");
-        }
-
-        await using var stream = image.OpenReadStream();
-
-        if (!await ProfileImageValidator.HasExpectedSignatureAsync(stream, image.ContentType, cancellationToken))
-        {
-            return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Invalid image file", detail: "The image content does not match its declared type.");
+            return BadRequest("Only JPEG, PNG are allowed.");
         }
 
         _logger.LogInformation("Uploading profile image for user {UserId}, type {ContentType}, size {Size}", id, image.ContentType, image.Length);
+        await using var stream = image.OpenReadStream();
         var user = await _userService.UpdateImageUrlAsync(id, stream, extension, image.ContentType, cancellationToken);
         _logger.LogInformation("Profile image updated for user {UserId}", id);
-        return user is null
-            ? Problem(statusCode: StatusCodes.Status404NotFound, title: "User not found", detail: "The requested user does not exist.")
-            : Ok(user);
+        return user is null ? NotFound() : Ok(user);
     }
 
     [HttpDelete("{id}/profile-picture")]
-    [Authorize(Roles = $"{UserRoles.User},{UserRoles.Admin}")]
-    public async Task<IActionResult> RemoveImageUrlAsync([MongoObjectId] string id, CancellationToken cancellationToken)
+    [Authorize(Roles = "User,Admin")]
+    public async Task<IActionResult> RemoveImageUrlAsync(string id, CancellationToken cancellationToken)
     {
         var currentUserId = _currentUser.UserId;
         var isAdmin = _currentUser.IsAdmin;
@@ -140,13 +126,11 @@ public class UserController : ControllerBase
         if (currentUserId != id && !isAdmin)
         {
             _logger.LogWarning("Access denied for user {CurrentUserId} targeting user {TargetUserId}", currentUserId, id);
-            return Problem(statusCode: StatusCodes.Status403Forbidden, title: "Forbidden", detail: "You are not allowed to update this user.");
+            return Forbid();
         }
 
         var user = await _userService.RemoveImageUrlAsync(id, cancellationToken);
         _logger.LogInformation("Profile image removed for user {UserId}", id);
-        return user is null
-            ? Problem(statusCode: StatusCodes.Status404NotFound, title: "User not found", detail: "The requested user does not exist.")
-            : Ok(user);
+        return user is null ? NotFound() : Ok(user);
     }
 }

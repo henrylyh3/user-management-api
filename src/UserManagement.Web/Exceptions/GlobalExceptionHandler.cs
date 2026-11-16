@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
-using System.Diagnostics;
 
 namespace UserManagement.Web.Exceptions;
 
@@ -31,7 +30,6 @@ public class GlobalExceptionHandler
             Title = "Internal Server Error",
             Detail = "An unexpected error occurred."
         };
-        problem.Extensions["traceId"] = Activity.Current?.TraceId.ToString() ?? httpContext.TraceIdentifier;
 
         httpContext.Response.StatusCode =
             StatusCodes.Status500InternalServerError;

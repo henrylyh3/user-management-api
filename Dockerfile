@@ -19,13 +19,8 @@ WORKDIR /app
 
 COPY --from=build /app/publish .
 
-RUN mkdir -p /app/Logs /app/wwwroot/uploads \
-    && chown -R "${APP_UID}:${APP_UID}" /app/Logs /app/wwwroot
-
 ENV ASPNETCORE_URLS=http://0.0.0.0:10000
 
 EXPOSE 10000
-
-USER $APP_UID
 
 ENTRYPOINT ["dotnet", "UserManagement.Web.dll"]

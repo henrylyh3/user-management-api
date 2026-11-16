@@ -48,10 +48,6 @@ ScaffoldingReadMe.txt
 # dotenv environment variables file
 .env
 
-# Data Protection certificates
-*.pem
-*.pfx
-
 # Others
 ~$*
 *~
