@@ -1,13 +1,8 @@
 name: CD deploy API
-run-name: Deploy API branch ${{ inputs.branch }}
+run-name: Deploy API branch ${{ github.ref_name }}
 
 on:
   workflow_dispatch:
-    inputs:
-      branch:
-        description: Branch whose latest successful CI package should be deployed
-        required: true
-        type: string
 
 permissions:
   contents: read
@@ -32,7 +27,7 @@ jobs:
       SSH_PORT: ${{ vars.SSH_PORT || '22' }}
       UPLOAD_PATH: ${{ vars.UPLOAD_PATH }}
     steps:
-      # Use deployment tooling from the workflow ref, not from the package branch.
+      # The dropdown branch supplies both deployment tooling and the CI package branch.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
@@ -41,8 +36,10 @@ jobs:
         id: release
         env:
           GH_TOKEN: ${{ github.token }}
-          DEPLOY_BRANCH: ${{ inputs.branch }}
-        run: python3 .github/scripts/select_release.py
+          DEPLOY_BRANCH: ${{ github.ref_name }}
+        run: |
+          if [[ "$GITHUB_REF_TYPE" != branch ]]; then echo "::error::Select a branch, not a tag."; exit 1; fi
+          python3 .github/scripts/select_release.py
 
       - name: Download selected immutable artifact
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
@@ -58,7 +55,7 @@ jobs:
           PACKAGE_NAME: ${{ steps.release.outputs.package-name }}
           EXPECTED_COMMIT: ${{ steps.release.outputs.commit }}
           EXPECTED_RUN: ${{ steps.release.outputs.run-id }}
-          DEPLOY_BRANCH: ${{ inputs.branch }}
+          DEPLOY_BRANCH: ${{ github.ref_name }}
         run: |
           set -euo pipefail
           python3 - <<'PYTHON'

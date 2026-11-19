@@ -155,12 +155,12 @@ Names include a sanitized branch name, a hash of the full branch name (avoids co
 `.github/workflows/deploy.yml` is **manual only** and does not rebuild. To expose the Run workflow button, the workflow must exist on the repository's default branch.
 
 1. Open **Actions → CD deploy API → Run workflow**.
-2. Choose the trusted workflow/tooling branch in GitHub's **Use workflow from** selector. Normally use the default branch after these files are merged there.
-3. Enter the exact source branch in the required **branch** field, for example `feature/initial` or `release/1.0.0`.
+2. Choose the deployment branch in GitHub's **Use workflow from** dropdown, for example `feature/initial` or `main`. No additional branch input is required.
+3. Click **Run workflow**. The dropdown branch supplies both the deployment tooling and the source branch used to find the latest successful CI package. Tags are rejected. New branches from updated `main` inherit these workflows; older branches must receive the workflow and supporting scripts first.
 4. CD resolves the latest successful push/manual CI run for that branch from `publish.yml`, pins its run/artifact IDs, and shows its commit in the run summary. A newer failed or running CI run does not displace the previous successful run. If the selected successful run's package has expired or is missing, deployment fails and asks for a fresh CI run; it does not silently substitute an older package.
 5. Download that exact artifact and validate its checksum and branch/commit/run metadata.
 6. Join NetBird, upload using password-authenticated SFTP, and verify the checksum again on the server.
-7. Run the deployment script from the trusted workflow branch with the **exact selected archive path**. Stop the service, replace application files, copy server-side Production settings, start the service and check `/health`. Restore previous application files and restart the previous service if deployment fails.
+7. Run the deployment script from the selected dropdown branch with the **exact selected archive path**. Stop the service, replace application files, copy server-side Production settings, start the service and check `/health`. Restore previous application files and restart the previous service if deployment fails.
 
 Deployments to this API are serialized across all source branches; a newer request does not cancel a running deployment. GitHub may replace an older pending request with the newest pending request. Deployment summaries identify the selected CI run and commit. An upload or deployment error leaves CD **failed**; its summary links the selected CI run through the earlier selection summary for manual recovery. CI artifacts remain in the successful CI run, not the failed CD run.
 
