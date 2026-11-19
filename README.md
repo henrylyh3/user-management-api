@@ -171,10 +171,12 @@ Configure **Settings → Environments → production → Environment variables**
 | `NETBIRD_SETUP_KEY` | NetBird setup key; runner must be allowed to access the server's SSH port. |
 | `SSH_PASSWORD` | SSH password for the upload/deployment account. |
 | `SSH_KNOWN_HOSTS` | Verified host-key line for the exact hostname/IP used by `SSH_HOST`. |
-| `SSH_HOST` | Server NetBird IP or private DNS hostname. |
+| `SSH_HOST` | Server NetBird IP; no DNS hostname is required. |
 | `SSH_USERNAME` | SSH account, for example `ubuntu`. |
 | `SSH_PORT` | Optional; defaults to `22` if absent. |
 | `UPLOAD_PATH` | Absolute writable folder, for example `/henry/release`; letters, digits, underscores, hyphens and slashes only. |
+
+The NetBird step uses only the setup key to connect; it does not wait for DNS. Set `SSH_HOST` to the server's NetBird IP. `SSH_KNOWN_HOSTS` verifies the SSH server identity and is unrelated to DNS.
 
 Initial `-` values are rejected until replaced. The same seven previously created Variables are reused; no additional server variables are needed. Values stored as Variables are readable configuration, even though this workflow masks the password/setup key in its logs.
 

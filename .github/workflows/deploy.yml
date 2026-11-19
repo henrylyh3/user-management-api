@@ -108,7 +108,6 @@ jobs:
         uses: ankurk91/netbird-action@a2bfe6fd69eed50daa9387dfb3d86e5092f25557 # v2
         with:
           setup-key: ${{ vars.NETBIRD_SETUP_KEY }}
-          dns-hostnames: ${{ vars.SSH_HOST }}
           cleanup: 'true'
 
       - name: Install SSH password helper
