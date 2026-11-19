@@ -191,7 +191,7 @@ For a non-default port, use `[hostname]:port` as the first field. Store the comp
 ## Server prerequisites
 
 - Existing `/etc/systemd/system/user-management-api.service`, .NET 10 ASP.NET Core runtime, Python 3.11+, `tar`, `gzip`, `sha256sum`, `flock`, and `curl`.
-- Persistent config at `/henry/config/appsettings.Production.json` and writable `/henry` application/data paths for the SSH user.
+- Persistent config at `/henry/config/appsettings.Production.json`, a writable `/henry` application path, and configured `/data` directories writable by the service account.
 - The SSH user must be allowed to start/stop **this service** without an interactive sudo password. Configure through `sudo visudo`, adjusting the account and executable path if necessary:
 
 ```sudoers
@@ -199,6 +199,38 @@ ubuntu ALL=(root) NOPASSWD: /usr/bin/systemctl start user-management-api.service
 ```
 
 - The deployment script uses `/henry/user-management-api`, `/henry/config/appsettings.Production.json`, and `http://127.0.0.1:5000/health`. CD uploads the current script to a temporary server folder and runs it; no server-side script update is required for CD. No database seeding is performed.
+
+## Persistent logs and local uploads
+
+Configure paths through `AppPaths` in appsettings (the base values are inherited by Development/Production unless overridden):
+
+```json
+"AppPaths": {
+  "LogDirectory": "/data/log/user-management-api",
+  "UploadDirectory": "/data/upload"
+}
+```
+
+Logs are daily `log-YYYYMMDD.txt` files with the existing 30-file retention. Local images are stored directly under `/data/upload`, and their public URLs remain `/uploads/...`. Only the configured upload directory is exposed by static-file middleware; logs are not served. Cloudflare R2 uploads continue to use R2 and do not create/use the local upload directory.
+
+Create the directories once on Ubuntu before deploying, using the service account (`ubuntu` in the supplied unit):
+
+```bash
+sudo mkdir -p /data/log/user-management-api /data/upload
+sudo chown ubuntu:ubuntu /data/log/user-management-api /data/upload
+sudo chmod 750 /data/log/user-management-api /data/upload
+```
+
+The application creates missing directories when its account has permission. Creating `/data` itself usually requires this one-time administrator setup. On a local machine you can override the two settings with writable local directories in ignored `appsettings.Development.json`; relative paths resolve against the application content root.
+
+If old local images exist, copy them before restarting the new application; do not delete the source until verified:
+
+```bash
+sudo cp -a /henry/api-data/wwwroot/uploads/. /data/upload/
+sudo chown -R ubuntu:ubuntu /data/upload
+```
+
+Skip that copy when using R2 or when the old directory does not exist. Existing application logs can be copied separately from `/henry/user-management-api/Logs/` if needed. Deployments replace the application directory but leave both `/data` locations intact. The service no longer needs `ASPNETCORE_WEBROOT`; remove that old line from an existing installed unit and run `sudo systemctl daemon-reload` if updating the unit. Upload serving now uses `AppPaths:UploadDirectory` directly.
 
 ## Manual recovery
 

@@ -107,7 +107,6 @@ tar -xzf "$scratch/api.tar.gz" --no-same-owner --no-same-permissions -C "$app_di
 [[ -f "$app_dir/UserManagement.Web.dll" && -f "$app_dir/UserManagement.Web.runtimeconfig.json" ]] ||
 	fail "Archive does not contain the published API."
 install -m 600 -- "$config" "$app_dir/appsettings.Production.json"
-mkdir -p -- "$root/api-data/wwwroot/uploads"
 
 start_attempted=true
 sudo -n systemctl start "$service"

@@ -1,4 +1,6 @@
 using UserManagement.Application.Interfaces;
+using UserManagement.Core.Settings;
+using Microsoft.Extensions.Options;
 
 namespace UserManagement.Web.Services;
 
@@ -6,12 +8,16 @@ public sealed class LocalFileStorageService : IFileStorageService
 {
     private readonly string _uploadsRoot;
 
-    public LocalFileStorageService(IWebHostEnvironment environment)
+    public string UploadRoot => _uploadsRoot;
+
+    public LocalFileStorageService(IOptions<AppPathsSettings> settings, IWebHostEnvironment environment)
     {
-        var webRoot = environment.WebRootPath ?? Path.Combine( environment.ContentRootPath, "wwwroot");
-
-        _uploadsRoot = Path.Combine( webRoot, "uploads");
-
+        var directory = settings.Value.UploadDirectory;
+        if (string.IsNullOrWhiteSpace(directory))
+        {
+            throw new InvalidOperationException("AppPaths:UploadDirectory must be configured.");
+        }
+        _uploadsRoot = Path.GetFullPath(directory, environment.ContentRootPath);
         Directory.CreateDirectory(_uploadsRoot);
     }
 
