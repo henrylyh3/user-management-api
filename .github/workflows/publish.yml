@@ -70,6 +70,9 @@ jobs:
       - name: Publish without rebuilding
         run: dotnet publish src/UserManagement.Web/UserManagement.Web.csproj --configuration Release --no-build --no-restore -p:UseAppHost=false --output "$RUNNER_TEMP/api-publish"
 
+      - name: Publish seed utility without rebuilding
+        run: dotnet publish src/UserManagement.Seed/UserManagement.Seed.csproj --configuration Release --no-build --no-restore -p:UseAppHost=false --output "$RUNNER_TEMP/api-publish/tools/seed"
+
       - name: Validate and package release with SHA-256
         id: package
         env:

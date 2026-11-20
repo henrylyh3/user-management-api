@@ -7,7 +7,7 @@ REST API for managing users, authentication, authorization, profile information,
 .net 10, ASP.NET Core Web API,
 JWT Bearer authentication, Role-based authorization
 ASP.NET Core PasswordHasher<TUser> using PBKDF2
-Database: MongoDB
+Database: SQLite (Production), MongoDB (Development)
 Logging: Serilog
 File storage: Local / CloudflareR2 (s3 api)
 Hosting: Render with docker
@@ -276,3 +276,46 @@ Cleanup uses server file modification times, not the CI build date. Run without 
 Set the server values inside the existing `MongoDB` section of `/henry/config/appsettings.Production.json`. CI does not read or inject them; CD copies that persistent server file during deployment. No new GitHub Variables are required. Add `"Tls": false` and `"DirectConnection": true`, preserving the existing connection string/database name. These options take effect after deploying the updated application.
 
 Direct connection requires a single-host `mongodb://` URI. Do not combine it with an Atlas `mongodb+srv://` URI; Atlas normally uses TLS enabled and direct connection disabled. Development/Production settings files remain ignored by Git, as in the existing project configuration.
+
+
+## SQLite on the self-hosted Production server
+
+The base API configuration selects SQLite; local ignored Development configuration selects MongoDB. Set the provider explicitly in `/henry/config/appsettings.Production.json` so the deployment intent is clear:
+
+```json
+"Database": { "Provider": "SQLite" },
+"Sqlite": { "DatabasePath": "/data/database/user-management-api.db" }
+```
+
+Existing `MongoDB` settings are ignored when SQLite is selected. SQLite runs inside the API process using Microsoft.Data.Sqlite; Docker, a database service and a database TCP port are not required. Unknown provider names fail configuration instead of silently selecting a different database.
+
+Create its persistent directory once before deployment:
+
+```bash
+sudo mkdir -p /data/database
+sudo chown ubuntu:ubuntu /data/database
+sudo chmod 700 /data/database
+```
+
+Deploy the new CI package after updating server configuration. The first SQLite connection creates the database, users table and case-insensitive unique email index. `/health` now opens the configured SQLite database and executes a query, so a failed connection fails the CD health check. Application IDs remain 24-character hexadecimal strings; JWTs, ownership checks, profile and image endpoints retain their contracts. Existing data is retained when the app restarts or is redeployed because the file is under `/data`. WAL files may appear beside the database and are part of its active storage.
+
+For the initial schema this initialization is repeatable and does not remove data. Future table changes require explicit schema migration work; startup does not rebuild existing tables. MongoDB data is not automatically migrated; a new SQLite file starts empty.
+
+The release package includes a seed utility at `tools/seed` without local seed configuration/credentials. After deployment, seed the test User/Admin accounts if wanted:
+
+```bash
+dotnet /henry/user-management-api/tools/seed/UserManagement.Seed.dll --Database:Provider=SQLite --Sqlite:DatabasePath=/data/database/user-management-api.db
+```
+
+Seeding skips existing emails. Local seed commands can select SQLite through the same two command-line arguments; the existing local seed configuration continues to use MongoDB unless overridden.
+
+After SQLite deployment and signup/signin verification, remove the test MongoDB container and Docker packages on this VM. First inspect `sudo docker ps -a` and confirm no other containers need Docker:
+
+```bash
+sudo docker stop -t 30 user-management-mongodb
+sudo docker rm user-management-mongodb
+sudo systemctl disable --now docker.service docker.socket containerd.service
+sudo apt purge -y docker.io containerd runc
+```
+
+These commands preserve `/data/mongodb` and Docker's data directories; they do not delete database files. Keep them until you no longer need the old MongoDB data. Don't uninstall Docker while the old MongoDB-backed API is still in use.

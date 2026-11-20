@@ -67,3 +67,10 @@ nunit-*.xml
 
 # Local Codex instructions
 /AGENTS.md
+
+# Local SQLite databases and journal files
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3

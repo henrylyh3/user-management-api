@@ -1,8 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using UserManagement.Application.Interfaces;
 using UserManagement.Application.Services;
-using UserManagement.DataAccess.Interfaces;
-using UserManagement.DataAccess.Repositories;
 using Microsoft.AspNetCore.Identity;
 using UserManagement.Core.Models;
 
@@ -15,7 +13,6 @@ public static class DependencyInjection
     {
         services.AddScoped<IUserService, UserService>();
 
-        services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
 

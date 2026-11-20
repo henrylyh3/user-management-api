@@ -3,7 +3,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using UserManagement.Core.Models;
 using UserManagement.Core.Settings;
-using UserManagement.DataAccess.Repositories;
+using UserManagement.DataAccess;
+using UserManagement.DataAccess.Interfaces;
 
 var builder = Host.CreateApplicationBuilder(
     new HostApplicationBuilderSettings
@@ -17,7 +18,8 @@ builder.Services.Configure<MongoDbSettings>(
     builder.Configuration.GetSection("MongoDB")
 );
 
-builder.Services.AddScoped<UserRepository>();
+builder.Services.Configure<SqliteSettings>(builder.Configuration.GetSection("Sqlite"));
+builder.Services.AddPersistence(builder.Configuration["Database:Provider"] ?? "MongoDB");
 
 builder.Services.AddScoped<
     IPasswordHasher<User>,
@@ -28,7 +30,7 @@ using var host = builder.Build();
 using var scope = host.Services.CreateScope();
 
 var repository =
-    scope.ServiceProvider.GetRequiredService<UserRepository>();
+    scope.ServiceProvider.GetRequiredService<IUserRepository>();
 
 var passwordHasher =
     scope.ServiceProvider
@@ -57,7 +59,7 @@ await SeedUserAsync(
 Console.WriteLine("User seeding completed.");
 
 static async Task SeedUserAsync(
-    UserRepository repository,
+    IUserRepository repository,
     IPasswordHasher<User> passwordHasher,
     string firstName,
     string lastName,

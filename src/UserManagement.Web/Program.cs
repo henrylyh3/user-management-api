@@ -12,6 +12,8 @@ using Amazon.Runtime;
 using Amazon.S3;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.FileProviders;
+using UserManagement.DataAccess;
+using UserManagement.Web.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -58,10 +60,11 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddApplication();
 
 
-//db
-builder.Services.Configure<MongoDbSettings>(
-    builder.Configuration.GetSection("MongoDB")
-);
+// Database provider is configured independently of application services.
+var databaseProvider = builder.Configuration["Database:Provider"] ?? "SQLite";
+builder.Services.Configure<MongoDbSettings>(builder.Configuration.GetSection("MongoDB"));
+builder.Services.Configure<SqliteSettings>(builder.Configuration.GetSection("Sqlite"));
+builder.Services.AddPersistence(databaseProvider);
 
 //Cloudflare r2 setting
 // File storage
@@ -113,7 +116,8 @@ builder.Services.AddCors(options =>
 });
 
 //health
-builder.Services.AddHealthChecks();
+var healthChecks = builder.Services.AddHealthChecks();
+if (string.Equals(databaseProvider, "SQLite", StringComparison.OrdinalIgnoreCase)) healthChecks.AddCheck<SqliteHealthCheck>("sqlite");
 
 //jwt section
 builder.Services.Configure<JwtSettings>(
@@ -165,6 +169,8 @@ builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 //app
 
 var app = builder.Build();
+
+app.Logger.LogInformation("Database provider: {DatabaseProvider}", databaseProvider);
 
 app.Logger.LogInformation("File storage service: {StorageService}", useR2 ? nameof(CloudflareR2StorageService) : nameof(LocalFileStorageService));
 
