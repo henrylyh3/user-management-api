@@ -245,6 +245,30 @@ Replace `ACTUAL_ARCHIVE_FILENAME` with the downloaded filename. Without an argum
 Checksums detect corruption; they do not independently authenticate a package when an attacker can replace both files. Source-branch deployment runs that branch's application code on your server. Production application secrets stay in server configuration and must not be committed into release packages.
 
 
+## Server release cleanup (daily at 10am Malaysia time)
+
+Store `deployment/cleanup-releases.sh` at `/henry/scripts/cleanup-releases.sh`, outside the application/release directories. It deletes only top-level `user-management-api-*.tar.gz`, `user-management-web-*.tar.gz` and their `.sha256` files whose last-modified time is strictly older than 7 × 24 hours. It leaves recent packages, unrelated files, symlinks and directories (including upload staging) untouched. It skips cleanup while the API deployment lock is held. Future web deployment scripts should cooperate with this same lock or add equivalent coordination before using cleanup alongside web deployment.
+
+Upload the script using Cyberduck, then:
+
+```bash
+mkdir -p /henry/scripts
+chmod +x /henry/scripts/cleanup-releases.sh
+/henry/scripts/cleanup-releases.sh --dry-run
+crontab -e
+```
+
+For a server configured to **UTC**, add this cron entry: 02:00 UTC is **10:00am Asia/Kuala_Lumpur**.
+
+```cron
+0 2 * * * /henry/scripts/cleanup-releases.sh >> /data/log/user-management-api/release-cleanup.log 2>&1
+```
+
+Check the server timezone with `timedatectl`. If the server is already configured to `Asia/Kuala_Lumpur`, use `0 10 * * *` instead. The cron user needs write permission to `/henry/release`, the deployment lock under `/henry`, and the log directory. No sudo is needed when using the application's `ubuntu` account with those permissions.
+
+Cleanup uses server file modification times, not the CI build date. Run without `--dry-run` to delete eligible files immediately. Daily execution means files are removed at the next scheduled cleanup after becoming older than seven days. Deleting old packages does not stop the running application; it removes those local rollback archives. Cron installation on the server is manual.
+
+
 ## MongoDB connection options
 
 `MongoDB:Tls` and `MongoDB:DirectConnection` override the connection-string options when configured. Base appsettings uses `Tls=false` and `DirectConnection=true`; local ignored Development settings reverse them (`true` / `false`). When these optional properties are absent (for example in seed settings), the MongoDB driver's connection-string defaults are preserved.
