@@ -243,3 +243,12 @@ bash /henry/post-user-management-api.sh /henry/release/ACTUAL_ARCHIVE_FILENAME.t
 Replace `ACTUAL_ARCHIVE_FILENAME` with the downloaded filename. Without an argument, the script selects the newest API archive in `/henry/release`. It requires the matching checksum and rejects unsafe archive paths before stopping the service. Keep the explicit path for branch-specific recovery.
 
 Checksums detect corruption; they do not independently authenticate a package when an attacker can replace both files. Source-branch deployment runs that branch's application code on your server. Production application secrets stay in server configuration and must not be committed into release packages.
+
+
+## MongoDB connection options
+
+`MongoDB:Tls` and `MongoDB:DirectConnection` override the connection-string options when configured. Base appsettings uses `Tls=false` and `DirectConnection=true`; local ignored Development settings reverse them (`true` / `false`). When these optional properties are absent (for example in seed settings), the MongoDB driver's connection-string defaults are preserved.
+
+Set the server values inside the existing `MongoDB` section of `/henry/config/appsettings.Production.json`. CI does not read or inject them; CD copies that persistent server file during deployment. No new GitHub Variables are required. Add `"Tls": false` and `"DirectConnection": true`, preserving the existing connection string/database name. These options take effect after deploying the updated application.
+
+Direct connection requires a single-host `mongodb://` URI. Do not combine it with an Atlas `mongodb+srv://` URI; Atlas normally uses TLS enabled and direct connection disabled. Development/Production settings files remain ignored by Git, as in the existing project configuration.
