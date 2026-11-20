@@ -1,0 +1,148 @@
+name: CD deploy API
+run-name: Deploy API branch ${{ github.ref_name }}
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+# All branches deploy to the same application; never interrupt a running deployment.
+concurrency:
+  group: api-deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash
+    env:
+      SSH_HOST: ${{ vars.SSH_HOST }}
+      SSH_USERNAME: ${{ vars.SSH_USERNAME }}
+      SSH_PORT: ${{ vars.SSH_PORT || '22' }}
+      UPLOAD_PATH: ${{ vars.UPLOAD_PATH }}
+    steps:
+      # The dropdown branch supplies both deployment tooling and the CI package branch.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Resolve latest successful branch package
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEPLOY_BRANCH: ${{ github.ref_name }}
+        run: |
+          if [[ "$GITHUB_REF_TYPE" != branch ]]; then echo "::error::Select a branch, not a tag."; exit 1; fi
+          python3 .github/scripts/select_release.py
+
+      - name: Download selected immutable artifact
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ steps.release.outputs.run-id }}
+          artifact-ids: ${{ steps.release.outputs.artifact-id }}
+          merge-multiple: true
+          path: ${{ runner.temp }}/release
+
+      - name: Verify package checksum and release identity
+        env:
+          PACKAGE_NAME: ${{ steps.release.outputs.package-name }}
+          EXPECTED_COMMIT: ${{ steps.release.outputs.commit }}
+          EXPECTED_RUN: ${{ steps.release.outputs.run-id }}
+          DEPLOY_BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PYTHON'
+          import hashlib, json, os, tarfile
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP']) / 'release'
+          name = os.environ['PACKAGE_NAME']
+          archive = root / f'{name}.tar.gz'
+          checksum = root / f'{name}.tar.gz.sha256'
+          if {p.name for p in root.iterdir()} != {archive.name, checksum.name}:
+              raise SystemExit('Unexpected artifact contents.')
+          digest, filename = checksum.read_text().strip().split(maxsplit=1)
+          with archive.open('rb') as stream:
+              actual = hashlib.file_digest(stream, 'sha256').hexdigest()
+          if filename != archive.name or digest != actual:
+              raise SystemExit('Package checksum does not match.')
+          with tarfile.open(archive, 'r:gz') as package:
+              manifest = package.extractfile('./release.json')
+              if manifest is None or package.getmember('./release.json').size > 65536:
+                  raise SystemExit('Release metadata is missing or invalid.')
+              metadata = json.load(manifest)
+          expected = {'branch': os.environ['DEPLOY_BRANCH'], 'sourceCommit': os.environ['EXPECTED_COMMIT'], 'runId': os.environ['EXPECTED_RUN']}
+          if any(metadata.get(key) != value for key, value in expected.items()):
+              raise SystemExit('Package identity does not match the selected CI run.')
+          print('Checksum and release identity verified.')
+          PYTHON
+
+      - name: Validate server configuration
+        env:
+          NETBIRD_SETUP_KEY: ${{ vars.NETBIRD_SETUP_KEY }}
+          SSH_PASSWORD: ${{ vars.SSH_PASSWORD }}
+          SSH_KNOWN_HOSTS: ${{ vars.SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          for name in NETBIRD_SETUP_KEY SSH_PASSWORD SSH_KNOWN_HOSTS SSH_HOST SSH_USERNAME SSH_PORT UPLOAD_PATH; do
+            if [[ -z "${!name}" || "${!name}" == "-" ]]; then echo "::error::$name must be configured in the production environment."; exit 1; fi
+          done
+          echo "::add-mask::$NETBIRD_SETUP_KEY"
+          echo "::add-mask::$SSH_PASSWORD"
+          [[ "$SSH_HOST" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]*$ ]]
+          [[ "$SSH_USERNAME" =~ ^[a-zA-Z_][a-zA-Z0-9_-]*$ ]]
+          [[ "$SSH_PORT" =~ ^[0-9]{1,5}$ ]] && (( 10#$SSH_PORT > 0 && 10#$SSH_PORT <= 65535 ))
+          [[ "$UPLOAD_PATH" =~ ^/[a-zA-Z0-9_/-]+$ && "$UPLOAD_PATH" != / ]]
+          mkdir -p "$HOME/.ssh"
+          chmod 700 "$HOME/.ssh"
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+
+      - name: Connect to NetBird
+        uses: ankurk91/netbird-action@a2bfe6fd69eed50daa9387dfb3d86e5092f25557 # v2
+        with:
+          setup-key: ${{ vars.NETBIRD_SETUP_KEY }}
+          cleanup: 'true'
+
+      - name: Install SSH password helper
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install --yes --no-install-recommends sshpass
+
+      - name: Upload, deploy selected package and check health
+        env:
+          SSHPASS: ${{ vars.SSH_PASSWORD }}
+          PACKAGE_NAME: ${{ steps.release.outputs.package-name }}
+        run: |
+          set -euo pipefail
+          cp deployment/post-user-management-api.sh "$RUNNER_TEMP/release/deploy.sh"
+          cd "$RUNNER_TEMP/release"
+          ssh_options=(-o StrictHostKeyChecking=yes -o ConnectTimeout=20 -o ServerAliveInterval=15 -o ServerAliveCountMax=3 -o PreferredAuthentications=password,keyboard-interactive -o PubkeyAuthentication=no)
+          target="$SSH_USERNAME@$SSH_HOST"
+          staging="$UPLOAD_PATH/.upload-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          sshpass -e ssh "${ssh_options[@]}" -p "$SSH_PORT" "$target" "mkdir -p '$staging'"
+          printf 'put "%s.tar.gz" "%s/%s.tar.gz"\nput "%s.tar.gz.sha256" "%s/%s.tar.gz.sha256"\nput "deploy.sh" "%s/deploy.sh"\n' "$PACKAGE_NAME" "$staging" "$PACKAGE_NAME" "$PACKAGE_NAME" "$staging" "$PACKAGE_NAME" "$staging" > "$RUNNER_TEMP/upload.sftp"
+          sshpass -e sftp "${ssh_options[@]}" -o BatchMode=no -P "$SSH_PORT" -b "$RUNNER_TEMP/upload.sftp" "$target"
+          sshpass -e ssh "${ssh_options[@]}" -p "$SSH_PORT" "$target" "set -eu; cd '$staging'; sha256sum --check '$PACKAGE_NAME.tar.gz.sha256'; mv '$PACKAGE_NAME.tar.gz.sha256' '$UPLOAD_PATH/'; mv '$PACKAGE_NAME.tar.gz' '$UPLOAD_PATH/'; bash '$staging/deploy.sh' '$UPLOAD_PATH/$PACKAGE_NAME.tar.gz'; rm '$staging/deploy.sh'; cd /; rmdir '$staging'"
+          echo "### Deployment healthy" >> "$GITHUB_STEP_SUMMARY"
+          echo "Selected package deployed and /health passed. Previous files are restored if deployment fails." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Report failure and manual fallback
+        if: ${{ failure() }}
+        env:
+          CI_RUN: ${{ steps.release.outputs.run-id }}
+          PACKAGE_NAME: ${{ steps.release.outputs.package-name }}
+        run: |
+          echo "::error::Deployment failed. Review the failed step; the CI artifact remains available for manual upload."
+          {
+            echo "### Deployment failed — manual action required"
+            echo "CI run: $CI_RUN"
+            echo "Artifact: $PACKAGE_NAME"
+            echo "Download the package and checksum from that CI run. Extract GitHub's ZIP, upload both files, and run the updated post-user-management-api.sh with the exact archive path."
+          } >> "$GITHUB_STEP_SUMMARY"

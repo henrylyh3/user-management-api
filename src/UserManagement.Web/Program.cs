@@ -11,6 +11,7 @@ using UserManagement.Web.Services;
 using Amazon.Runtime;
 using Amazon.S3;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,11 +24,14 @@ if (!string.IsNullOrWhiteSpace(renderPort))
         $"http://0.0.0.0:{renderPort}");
 }
 
-var logPath = Path.Combine(
-    builder.Environment.ContentRootPath,
-    "Logs",
-    "log-.txt"
-);
+var appPaths = builder.Configuration.GetSection("AppPaths").Get<AppPathsSettings>() ?? new AppPathsSettings();
+if (string.IsNullOrWhiteSpace(appPaths.LogDirectory) || string.IsNullOrWhiteSpace(appPaths.UploadDirectory))
+{
+    throw new InvalidOperationException("AppPaths log and upload directories must be configured.");
+}
+var logDirectory = Path.GetFullPath(appPaths.LogDirectory, builder.Environment.ContentRootPath);
+Directory.CreateDirectory(logDirectory);
+var logPath = Path.Combine(logDirectory, "log-.txt");
 
 builder.Host.UseSerilog((context, services, configuration) =>
 {
@@ -63,6 +67,8 @@ builder.Services.Configure<MongoDbSettings>(
 // File storage
 var useR2 = string.Equals(builder.Configuration["FileStorage:Provider"], "CloudflareR2", StringComparison.OrdinalIgnoreCase);
 
+LocalFileStorageService? localFileStorage = null;
+
 if (useR2)
 {
     builder.Services.Configure<CloudflareR2Settings>(builder.Configuration.GetSection("CloudflareR2"));
@@ -80,7 +86,8 @@ if (useR2)
 }
 else
 {
-    builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
+    localFileStorage = new LocalFileStorageService(Options.Create(appPaths), builder.Environment);
+    builder.Services.AddSingleton<IFileStorageService>(localFileStorage);
 }
 
 builder.Services.AddProblemDetails();
@@ -177,7 +184,14 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
-app.UseStaticFiles();
+if (localFileStorage is not null)
+{
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = new PhysicalFileProvider(localFileStorage.UploadRoot),
+        RequestPath = "/uploads"
+    });
+}
 
 app.UseAuthentication();
 app.UseAuthorization();

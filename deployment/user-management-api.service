@@ -1,0 +1,16 @@
+[Unit]
+Description=User Management API
+After=network.target
+
+[Service]
+Type=exec
+User=ubuntu
+WorkingDirectory=/henry/user-management-api
+ExecStart=/usr/bin/dotnet /henry/user-management-api/UserManagement.Web.dll
+Environment=ASPNETCORE_ENVIRONMENT=Production
+Environment=ASPNETCORE_URLS=http://127.0.0.1:5000
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

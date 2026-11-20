@@ -1,0 +1,131 @@
+name: CI publish API
+
+on:
+  push:
+    branches: ['**']
+  workflow_dispatch:
+
+concurrency:
+  group: api-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Install latest stable .NET 10 SDK
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6
+        with:
+          dotnet-version: '10.0.x'
+          dotnet-quality: 'ga'
+
+      - name: Validate SDK and project files
+        run: |
+          set -euo pipefail
+          # Let this run use the latest installed .NET 10, despite the local SDK pin.
+          python3 - <<'PYTHON'
+          import json
+          from pathlib import Path
+          path = Path('global.json')
+          config = json.loads(path.read_text())
+          config['sdk'].update(version='10.0.100', rollForward='latestFeature', allowPrerelease=False)
+          path.write_text(json.dumps(config, indent=2) + '\n')
+          PYTHON
+          dotnet --version | grep -E '^10\.0\.[0-9]+$'
+          test -f UserManagement.sln
+          test -f src/UserManagement.Web/UserManagement.Web.csproj
+          git diff --check
+
+      - name: Test workflow release selection
+        run: python3 -m unittest discover -s .github/scripts -p 'test_*.py'
+
+      - name: Restore dependencies
+        run: dotnet restore UserManagement.sln -p:UseAppHost=false
+
+      - name: Build
+        run: dotnet build UserManagement.sln --configuration Release --no-restore -p:UseAppHost=false -p:ContinuousIntegrationBuild=true
+
+      - name: Test before publishing
+        run: dotnet test UserManagement.sln --configuration Release --no-build --no-restore --logger trx --results-directory "$RUNNER_TEMP/test-results"
+
+      - name: Upload test results
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: api-test-results-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/test-results/*.trx
+          if-no-files-found: ignore
+
+      - name: Publish without rebuilding
+        run: dotnet publish src/UserManagement.Web/UserManagement.Web.csproj --configuration Release --no-build --no-restore -p:UseAppHost=false --output "$RUNNER_TEMP/api-publish"
+
+      - name: Validate and package release with SHA-256
+        id: package
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          publish="$RUNNER_TEMP/api-publish"
+          for file in UserManagement.Web.dll UserManagement.Web.deps.json UserManagement.Web.runtimeconfig.json; do
+            test -s "$publish/$file"
+          done
+          python3 - <<'PYTHON'
+          import hashlib, json, os, re, subprocess
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP']) / 'api-publish'
+          for path in (root / 'UserManagement.Web.deps.json', root / 'UserManagement.Web.runtimeconfig.json'):
+              json.loads(path.read_text())
+          metadata = {
+              'branch': os.environ['GITHUB_REF_NAME'],
+              'sourceCommit': os.environ['SOURCE_SHA'],
+              'buildCommit': os.environ['GITHUB_SHA'],
+              'runId': os.environ['GITHUB_RUN_ID'],
+              'runAttempt': os.environ['GITHUB_RUN_ATTEMPT'],
+              'sdkVersion': subprocess.check_output(['dotnet', '--version'], text=True).strip(),
+          }
+          (root / 'release.json').write_text(json.dumps(metadata, indent=2) + '\n')
+          branch = os.environ['GITHUB_REF_NAME']
+          slug = re.sub(r'[^A-Za-z0-9_-]', '-', branch)[:40]
+          digest = hashlib.sha256(branch.encode()).hexdigest()[:12]
+          name = f"user-management-api-{slug}-{digest}-{metadata['sourceCommit']}-{metadata['runId']}-{metadata['runAttempt']}"
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write(f'name={name}\n')
+          (Path(os.environ['RUNNER_TEMP']) / 'package-name').write_text(name)
+          PYTHON
+          name=$(cat "$RUNNER_TEMP/package-name")
+          mkdir -p "$RUNNER_TEMP/release"
+          tar -czf "$RUNNER_TEMP/release/$name.tar.gz" -C "$publish" .
+          cd "$RUNNER_TEMP/release"
+          gzip -t "$name.tar.gz"
+          tar -tzf "$name.tar.gz" > "$RUNNER_TEMP/package-contents.txt"
+          grep -Fx './UserManagement.Web.dll' "$RUNNER_TEMP/package-contents.txt"
+          sha256sum "$name.tar.gz" > "$name.tar.gz.sha256"
+          sha256sum --check "$name.tar.gz.sha256"
+          {
+            echo "### API package ready"
+            echo "Artifact: $name"
+            echo "Commit: $SOURCE_SHA"
+            echo "Size: $(du -h "$name.tar.gz" | cut -f1)"
+            echo "SHA-256: $(cut -d ' ' -f1 "$name.tar.gz.sha256")"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # Each run is immutable; CD resolves the latest successful run for a branch.
+      - name: Retain package and checksum in GitHub Actions
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: ${{ steps.package.outputs.name }}
+          path: ${{ runner.temp }}/release/*
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
